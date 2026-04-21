@@ -1,0 +1,82 @@
+# ==============================================================
+# 感情トラッキング × AIセルフケアコーチ
+# docker-compose.yml (開発環境用)
+# ------------------------------------------------------------
+# 主な設計意図:
+#  - node_modules を匿名ボリュームで保護し、ホスト/コンテナ間の
+#    ネイティブモジュール不一致(bcrypt 等)を回避
+#  - PostgreSQL の healthcheck で backend 起動順序を制御
+#  - タイムゾーンを Asia/Tokyo に統一
+#  - Nginx を前段に置いて本番同等の同一オリジン構成
+# ==============================================================
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: selfcare_frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules      # ← 匿名ボリュームで上書きを防止(重要)
+    environment:
+      - VITE_API_BASE_URL=/api
+      - CHOKIDAR_USEPOLLING=true  # Docker on Mac/Win でHMRが効かない時の保険
+      - TZ=Asia/Tokyo
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: selfcare_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules      # ← 同じく保護
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Tokyo
+    depends_on:
+      db:
+        condition: service_healthy  # DB 起動完了を待つ
+
+  db:
+    image: postgres:16-alpine
+    container_name: selfcare_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: selfcare_db
+      TZ: Asia/Tokyo
+      PGTZ: Asia/Tokyo
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/prisma/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d selfcare_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  nginx:
+    image: nginx:alpine
+    container_name: selfcare_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  postgres_data:
+    driver: local
