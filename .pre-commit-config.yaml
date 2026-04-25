@@ -11,4 +11,4 @@ repos:
       - id: gitleaks
         name: Detect hardcoded secrets
         description: Detect hardcoded secrets using gitleaks
-        
+        stages: [pre-commit]      
