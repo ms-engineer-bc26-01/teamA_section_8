@@ -7,3 +7,8 @@
 # デフォルトルールを継承
 [extend]
 useDefault = true
+
+# .env.example は既知のダミー値のみ含むため誤検知対象外とする
+[allowlist]
+description = ".env.example の既知ダミー値を誤検知対象外にする"
+paths = ['''\.env\.example''']
