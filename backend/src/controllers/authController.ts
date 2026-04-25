@@ -1,18 +1,30 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { z } from 'zod';
 import prisma from '../lib/prisma';
 
 const COOKIE_NAME = 'token';
 const SALT_ROUNDS = 10;
 
-export async function register(req: Request, res: Response): Promise<void> {
-  const { email, password, displayName } = req.body;
+const registerSchema = z.object({
+  email: z.string().email({ message: '有効なメールアドレスを入力してください' }),
+  password: z.string().min(8, { message: 'パスワードは8文字以上で入力してください' }),
+  displayName: z.string().min(1).max(100, { message: '表示名は1〜100文字で入力してください' }),
+});
 
-  if (!email || !password || !displayName) {
-    res.status(400).json({ message: 'email, password, displayName は必須です' });
+const loginSchema = z.object({
+  email: z.string().email({ message: '有効なメールアドレスを入力してください' }),
+  password: z.string().min(1, { message: 'パスワードは必須です' }),
+});
+
+export async function register(req: Request, res: Response): Promise<void> {
+  const result = registerSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ message: result.error.issues[0].message });
     return;
   }
+  const { email, password, displayName } = result.data;
 
   try {
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -36,12 +48,12 @@ export async function register(req: Request, res: Response): Promise<void> {
 }
 
 export async function login(req: Request, res: Response): Promise<void> {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    res.status(400).json({ message: 'email と password は必須です' });
+  const result = loginSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ message: result.error.issues[0].message });
     return;
   }
+  const { email, password } = result.data;
 
   try {
     const user = await prisma.user.findUnique({ where: { email } });
