@@ -6,9 +6,10 @@
 
 repos:
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.21.2
+    rev: 2ca41cc1372d1e939a6a879f18cdc19fc1cac1ce  # frozen: v8.30.0
     hooks:
       - id: gitleaks
         name: Detect hardcoded secrets
         description: Detect hardcoded secrets using gitleaks
+        args: ["--redact"]
         stages: [pre-commit]      
