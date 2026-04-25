@@ -1,73 +1,116 @@
-# React + TypeScript + Vite
+# Frontend — 感情トラッキング × AI セルフケアコーチ
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript + Vite + Tailwind CSS v3 で構成されたフロントエンドです。
 
-Currently, two official plugins are available:
+## 技術スタック
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| カテゴリ          | ライブラリ   | バージョン | 採用理由                                                      |
+| ----------------- | ------------ | ---------- | ------------------------------------------------------------- |
+| UI フレームワーク | React        | 19         | Server Components・Actions など最新機能を見据えた選択         |
+| 言語              | TypeScript   | 6          | 厳格な型チェックでチーム開発の品質を担保                      |
+| ビルドツール      | Vite         | 8          | HMR が高速、設定がシンプル                                    |
+| CSS               | Tailwind CSS | **v3**     | v4 はまだ破壊的変更が多くエコシステムが未成熟なため v3 を採用 |
+| 状態管理          | Zustand      | -          | 軽量かつ再レンダリング制御が容易なため推奨                    |
 
-## React Compiler
+> **Tailwind v3 を選んだ理由（補足）**
+> Tailwind v4 は設定ファイルの形式・PostCSS プラグインの扱いが大きく変わり、UI ライブラリ（shadcn/ui 等）や VS Code 拡張の対応が追いついていない状態です。チームとして安定した開発体験を優先し、v3 固定としました。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 開発環境の前提条件
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Node.js: v20 系**
+  - Dockerfile (`node:20-bookworm-slim`) とローカル環境を合わせるため、v20系を使用してください。
+  - バージョン管理ツール（`nvm` 等）の利用を推奨します（例: `nvm use 20`）。
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 起動方法
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 推奨: Docker Compose（全サービス一括起動）
+
+```bash
+# リポジトリルートで実行
+docker compose up --build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+| URL                   | 内容                         |
+| --------------------- | ---------------------------- |
+| http://localhost:80   | Nginx 経由（本番同等・推奨） |
+| http://localhost:3000 | Vite dev server 直アクセス   |
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+> **Windows / Mac で HMR が効かない場合**
+> `docker-compose.yml` に `CHOKIDAR_USEPOLLING=true` が設定済みなので、通常は追加作業不要です。
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### ローカル単体起動（Docker を使わない場合：UI実装時などに推奨）
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+ローカル起動時はバックエンドへの API プロキシが効かないため、`.env.local` で `VITE_API_BASE_URL` を直接バックエンドの URL に向けてください。
+
+```env
+# frontend/.env.local（Git 管理外）
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+---
+
+## 環境変数
+
+| 変数名              | デフォルト値 | 説明                                                                                      |
+| ------------------- | ------------ | ----------------------------------------------------------------------------------------- |
+| `VITE_API_BASE_URL` | `/api`       | バックエンド API のベース URL。Docker 環境では Nginx がプロキシするため `/api` のまま使用 |
+
+---
+
+## ディレクトリ構成
+
+役割を明確に分離するため、以下のアーキテクチャを採用しています。
+
+```text
+frontend/
+├── public/          # そのまま公開される静的ファイル (favicon等) ※空の場合は .gitkeep を配置
+├── src/
+│   ├── api/         # APIクライアント (fetch等の通信処理)
+│   ├── assets/      # importして使う画像・SVG・フォント等 ※空の場合は .gitkeep を配置
+│   ├── components/  # 再利用可能な UI コンポーネント
+│   │   ├── chat/    # チャットUI関連
+│   │   ├── charts/  # 感情グラフコンポーネント
+│   │   └── common/  # 汎用部品（ボタン・モーダル等）
+│   ├── constants/   # アプリ全体で使う定数群 (カラーコード、固定文言等)
+│   ├── hooks/       # カスタムフック (ロジックの分離)
+│   ├── pages/       # 画面（ルーティング）単位のコンポーネント
+│   ├── routes/      # ルーティング設定
+│   ├── store/       # グローバル状態管理 (Zustand)
+│   ├── types/       # TypeScript 型定義
+│   ├── utils/       # 共通ユーティリティ関数
+│   ├── App.tsx
+│   ├── index.css
+│   └── main.tsx
+├── tailwind.config.js
+└── vite.config.ts
+```
+
+---
+
+## コーディング規約
+
+- **スタイルは Tailwind クラスのみ使用**（独自 CSS ファイルは原則追加しない）
+- グローバルスタイルは `src/index.css` の `@tailwind` ディレクティブのみ
+- UI（見た目）とロジック（動き・通信）は分離し、複雑な処理は `src/hooks/` へ切り出す
+- 外部アセット（画像等）は `public/` と `src/assets/` の役割を理解して使い分ける
+
+---
+
+## よく使うコマンド
+
+```bash
+npm run dev      # 開発サーバー起動
+npm run build    # 本番ビルド（tsc + vite build）
+npm run lint     # ESLint 実行
+npm run preview  # ビルド成果物のプレビュー
 ```
