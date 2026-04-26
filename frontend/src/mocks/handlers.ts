@@ -1,28 +1,44 @@
 import { http, HttpResponse } from "msw";
 
 export const handlers = [
-  // backend の HealthResponseBody に合わせる
-  http.get("/api/health", () => {
-    return HttpResponse.json({ status: "ok" });
+  // ログインハンドラ
+  http.post("/api/auth/login", async ({ request }) => {
+    const { email } = (await request.json()) as { email: string };
+
+    // テスト用：特定のメールアドレスでエラーを返す
+    if (email === "error@example.com") {
+      return new HttpResponse(null, { status: 401 });
+    }
+
+    return HttpResponse.json({
+      token: "mock-jwt-token-s1-b-03", // DoD: token 取得
+      user: {
+        id: "user-uuid-001",
+        displayName: "テスター",
+        email: email,
+      },
+    });
   }),
 
-  // backend の LoginResponseBody + Cookie認証方針に合わせる
-  http.post("/api/auth/login", async () => {
-    return HttpResponse.json(
-      {
-        user: {
-          id: "uuid-1",
-          email: "test@example.com",
-          displayName: "テストユーザー",
-        },
+  // 新規登録ハンドラ
+  http.post("/api/auth/register", async ({ request }) => {
+    const { email, displayName } = (await request.json()) as {
+      email: string;
+      displayName: string;
+    };
+
+    return HttpResponse.json({
+      token: "mock-jwt-token-new-user",
+      user: {
+        id: "user-uuid-002",
+        displayName: displayName,
+        email: email,
       },
-      {
-        status: 200,
-        headers: {
-          "Set-Cookie": "token=mock-jwt-token; HttpOnly; Path=/",
-        },
+      status: 200,
+      headers: {
+        "Set-Cookie": "token=mock-jwt-token; HttpOnly; Path=/",
       },
-    );
+    });
   }),
 
   // 失敗系の例（必要なら使う）
