@@ -3,10 +3,41 @@ import { Button } from "../components/common/Button";
 import { Input } from "../components/common/Input";
 import { Card } from "../components/common/Card";
 import { Toast } from "../components/common/Toast";
+import { useAuthStore } from "../store/authStore";
 
 const UiPreview: React.FC = () => {
+  const { user, isAuthenticated, login, logout } = useAuthStore();
+
+  const handleTestLogin = () => {
+    login("dummy-jwt-token", {
+      id: "1",
+      displayName: "テストユーザー",
+      email: "test@example.com",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 p-10 font-sans text-slate-700">
+      {/* --- テスト用のUIを一番上に追加 --- */}
+      <section className="mb-12 p-6 bg-white rounded-3xl shadow-sm border border-purple-100">
+        <h2 className="text-xl font-semibold mb-4 text-slate-600">
+          Zustand Persist Test
+        </h2>
+        <div className="mb-4">
+          <p>
+            ログイン状態: {isAuthenticated ? "✅ ログイン中" : "❌ 未ログイン"}
+          </p>
+          <p>ユーザー名: {user?.displayName || "なし"}</p>
+        </div>
+        <div className="flex gap-4">
+          <Button onClick={handleTestLogin} variant="primary">
+            ログインする
+          </Button>
+          <Button onClick={logout} variant="outline">
+            ログアウトする
+          </Button>
+        </div>
+      </section>
       <h1 className="text-3xl font-bold text-purple-800/80 mb-10 border-b-2 border-purple-100 pb-2 inline-block">
         UI Components Preview
       </h1>
