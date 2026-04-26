@@ -1,47 +1,119 @@
-import { Link } from "react-router-dom";
+import React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "../components/common/Button";
+import { Input } from "../components/common/Input";
+import { Card } from "../components/common/Card";
+import { useAuthStore } from "../store/authStore";
 
-export const Login = () => {
+// 1. Zodで入力ルールの定義（スキーマ）
+const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, "メールアドレスを入力してください")
+    .email("正しいメールアドレスの形式で入力してください"),
+  password: z.string().min(6, "パスワードは6文字以上で入力してください"),
+});
+
+// スキーマからTypeScriptの型を自動生成
+type LoginFormInputs = z.infer<typeof loginSchema>;
+
+export const Login: React.FC = () => {
+  const navigate = useNavigate();
+  const { login } = useAuthStore();
+
+  // 2. React Hook Form の準備
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormInputs>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  // 3. 送信時の処理
+  const onSubmit = (data: LoginFormInputs) => {
+    // ※本来はここでAPIを叩きますが、今はダミーでログインを成功させます
+    console.log("送信データ:", data);
+
+    // ストアにログイン状態をセットしてホームへ遷移
+    login("dummy-jwt-token", {
+      id: "1",
+      displayName: "ゲスト",
+      email: data.email,
+    });
+    navigate("/home");
+  };
+
   return (
-    // iOSでの表示崩れを防ぐ 100dvh と、下部のホームバーを考慮したセーフエリア設定
-    <div className="min-h-[100dvh] bg-gradient-to-br from-green-50 to-blue-50 flex flex-col justify-center items-center p-6 pb-[env(safe-area-inset-bottom)]">
-      {/* PC表示でも間延びしないよう最大幅を 375px に制限しつつ、ポップなカードデザインを維持 */}
-      <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md border-4 border-white sm:max-w-[375px]">
-        <h1 className="text-3xl font-black text-center text-blue-500 mb-2">
-          おかえりなさい ✨
-        </h1>
-        <p className="text-center text-gray-500 mb-8 text-sm font-bold">
-          今日もセルフケアを始めましょう
-        </p>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
+      <Card className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-purple-700 mb-2">
+            おかえりなさい🌙
+          </h1>
+          <p className="text-slate-500 text-sm">今日も一日お疲れさまでした</p>
+        </div>
 
-        <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-          <input
-            type="email"
-            placeholder="メールアドレス"
-            // text-base: iOSの自動ズーム防止(16px以上)
-            // min-h-[44px]: タップ領域の確保
-            className="w-full p-4 min-h-[44px] text-base rounded-2xl bg-gray-100 border-2 border-transparent focus:border-blue-300 outline-none transition-all font-bold text-gray-700 placeholder:text-gray-400"
-          />
-          <input
-            type="password"
-            placeholder="パスワード"
-            className="w-full p-4 min-h-[44px] text-base rounded-2xl bg-gray-100 border-2 border-transparent focus:border-blue-300 outline-none transition-all font-bold text-gray-700 placeholder:text-gray-400"
-          />
-          <button className="w-full min-h-[44px] bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg transition-transform active:scale-95">
-            ログイン
-          </button>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* メールアドレス入力 */}
+          <div>
+            <label className="block text-sm font-medium text-slate-600 mb-1 ml-1">
+              メールアドレス
+            </label>
+            <Input
+              type="email"
+              placeholder="hello@example.com"
+              {...register("email")}
+            />
+            {/* エラー表示（DoD要件） */}
+            {errors.email && (
+              <p className="text-rose-500 text-xs mt-1 ml-1">
+                {errors.email.message}
+              </p>
+            )}
+          </div>
+
+          {/* パスワード入力 */}
+          <div>
+            <label className="block text-sm font-medium text-slate-600 mb-1 ml-1">
+              パスワード
+            </label>
+            <Input
+              type="password"
+              placeholder="••••••••"
+              {...register("password")}
+            />
+            {/* エラー表示（DoD要件） */}
+            {errors.password && (
+              <p className="text-rose-500 text-xs mt-1 ml-1">
+                {errors.password.message}
+              </p>
+            )}
+          </div>
+
+          <Button
+            type="submit"
+            variant="primary"
+            className="w-full"
+            disabled={isSubmitting}
+          >
+            ログインする
+          </Button>
         </form>
 
-        <p className="text-center text-gray-400 mt-6 text-sm font-bold">
-          はじめての方は
-          {/* Linkコンポーネントで Register.tsx への遷移を繋ぎ込み */}
+        <div className="mt-6 text-center text-sm text-slate-500">
+          アカウントをお持ちでない方は{" "}
           <Link
             to="/register"
-            className="text-blue-500 ml-1 cursor-pointer hover:underline p-2"
+            className="text-purple-600 font-semibold hover:underline"
           >
             新規登録
           </Link>
-        </p>
-      </div>
+        </div>
+      </Card>
     </div>
   );
 };
