@@ -11,7 +11,7 @@ export const handlers = [
     }
 
     return HttpResponse.json({
-      token: "mock-jwt-token-s1-b-03", // DoD: token 取得
+      token: "mock-jwt-token-s1-b-03",
       user: {
         id: "user-uuid-001",
         displayName: "テスター",
@@ -33,10 +33,6 @@ export const handlers = [
         id: "user-uuid-002",
         displayName: displayName,
         email: email,
-      },
-      status: 200,
-      headers: {
-        "Set-Cookie": "token=mock-jwt-token; HttpOnly; Path=/",
       },
     });
   }),
