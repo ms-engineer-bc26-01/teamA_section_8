@@ -1,0 +1,15 @@
+# ================================================================
+# pre-commit 設定ファイル
+# 目的: コミット時にシークレット(APIキー等)の漏洩を自動検出
+# マニュアル7章「セキュリティ(Cの重責)」pre-commit hook に対応
+# ================================================================
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: 2ca41cc1372d1e939a6a879f18cdc19fc1cac1ce  # frozen: v8.30.0
+    hooks:
+      - id: gitleaks
+        name: Detect hardcoded secrets
+        description: Detect hardcoded secrets using gitleaks
+        args: ["--redact", "--config", ".gitleaks.toml"]
+        stages: [pre-commit]      
