@@ -34,17 +34,25 @@ export const Login: React.FC = () => {
   });
 
   // 3. 送信時の処理
-  const onSubmit = (data: LoginFormInputs) => {
-    // ※本来はここでAPIを叩きますが、今はダミーでログインを成功させます
-    console.log("送信データ:", data);
+  const onSubmit = async (data: LoginFormInputs) => {
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
 
-    // ストアにログイン状態をセットしてホームへ遷移
-    login("dummy-jwt-token", {
-      id: "1",
-      displayName: "ゲスト",
-      email: data.email,
-    });
-    navigate("/home");
+      if (!response.ok) throw new Error();
+
+      const result = await response.json();
+
+      // MSW から返ってきたトークンとユーザー情報をストアに保存
+      login(result.token, result.user);
+      navigate("/home");
+    } catch (error) {
+      console.error("Login failed:", error);
+      alert("ログインに失敗しました。");
+    }
   };
 
   return (
