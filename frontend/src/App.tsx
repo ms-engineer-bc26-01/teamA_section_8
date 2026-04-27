@@ -29,7 +29,7 @@ function App() {
 
         {/* --- リダイレクト・404 --- */}
         {/* 初期アクセス時はログイン画面へ */}
-        <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
         {/* 存在しないURLへのアクセス */}
         <Route
           path="*"
