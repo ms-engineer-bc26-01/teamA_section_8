@@ -1,8 +1,16 @@
 import { randomBytes } from 'node:crypto';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
+import { Prisma } from '@prisma/client';
 import app from '../app';
 import prisma from '../lib/prisma';
+
+function makeP2025() {
+  return new Prisma.PrismaClientKnownRequestError('Record to update not found.', {
+    code: 'P2025',
+    clientVersion: '5.0.0',
+  });
+}
 
 jest.mock('../lib/prisma', () => ({
   __esModule: true,
@@ -19,6 +27,7 @@ jest.mock('../lib/prisma', () => ({
 
 const TEST_SECRET = randomBytes(32).toString('hex');
 const MOCK_USER_ID = 'user-uuid-1';
+const MOCK_OTHER_USER_ID = 'user-uuid-2';
 
 function makeToken(userId: string = MOCK_USER_ID) {
   return jwt.sign({ sub: userId }, TEST_SECRET, { expiresIn: '1h' });
@@ -158,6 +167,17 @@ describe('DELETE /api/conversations/:id', () => {
     expect(res.status).toBe(204);
     expect(mockDelete).toHaveBeenCalledWith({ where: { id: 'conv-1' } });
   });
+
+  it('findUniqueとdeleteの間に削除されてP2025が発生した場合404を返す', async () => {
+    mockFindUnique.mockResolvedValue({ id: 'conv-1', userId: MOCK_USER_ID });
+    mockDelete.mockRejectedValue(makeP2025());
+    const token = makeToken();
+    const res = await request(app)
+      .delete('/api/conversations/conv-1')
+      .set('Cookie', `token=${token}`);
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe('NOT_FOUND');
+  });
 });
 
 // ─── PUT /api/conversations/:id ───────────────────────────────────────────────
@@ -199,5 +219,16 @@ describe('PUT /api/conversations/:id', () => {
       .set('Cookie', `token=${token}`);
     expect(res.status).toBe(200);
     expect(res.body.conversation.id).toBe('conv-1');
+  });
+
+  it('findUniqueとupdateの間に削除されてP2025が発生した場合404を返す', async () => {
+    mockFindUnique.mockResolvedValue({ id: 'conv-1', userId: MOCK_USER_ID });
+    mockUpdate.mockRejectedValue(makeP2025());
+    const token = makeToken();
+    const res = await request(app)
+      .put('/api/conversations/conv-1')
+      .set('Cookie', `token=${token}`);
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe('NOT_FOUND');
   });
 });
