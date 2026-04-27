@@ -1,6 +1,6 @@
 # ==============================================================
 # .github/workflows/ci.yml
-# 対象ブランチ: develop / main へのPR、developへのpush
+# 対象ブランチ: feature / main へのPR、mainへのpush
 # 担当: S0-C-03 (メンバーC担当タスク / リーダーA代行)
 #
 # ── ジョブ構成 ────────────────────────────────────────────────
@@ -24,11 +24,11 @@ name: CI
 on:
   pull_request:
     branches:
-      - develop
+      - feature
       - main
   push:
     branches:
-      - develop
+      - main
 
 jobs:
   # ─────────────────────────────────────────────
