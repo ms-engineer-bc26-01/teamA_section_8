@@ -1,8 +1,12 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/authenticate';
 import prisma from '../lib/prisma';
 
-export async function createConversation(req: AuthRequest, res: Response): Promise<void> {
+export async function createConversation(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
     const conversation = await prisma.conversation.create({
       data: { userId: req.userId! },
@@ -10,7 +14,6 @@ export async function createConversation(req: AuthRequest, res: Response): Promi
     });
     res.status(201).json({ conversation });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+    next(error);
   }
 }

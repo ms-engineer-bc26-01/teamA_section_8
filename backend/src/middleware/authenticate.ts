@@ -1,14 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { AppError, ErrorCode } from '../utils/AppError';
 
 export interface AuthRequest extends Request {
   userId?: string;
 }
 
-export function authenticate(req: AuthRequest, res: Response, next: NextFunction): void {
+export function authenticate(req: AuthRequest, _res: Response, next: NextFunction): void {
   const token = req.cookies?.token as string | undefined;
   if (!token) {
-    res.status(401).json({ message: '認証が必要です' });
+    next(new AppError(ErrorCode.UNAUTHORIZED, 401, '認証が必要です'));
     return;
   }
 
@@ -20,6 +21,6 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
     req.userId = payload.sub;
     next();
   } catch {
-    res.status(401).json({ message: 'トークンが無効です' });
+    next(new AppError(ErrorCode.UNAUTHORIZED, 401, 'トークンが無効です'));
   }
 }
