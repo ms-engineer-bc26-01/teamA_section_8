@@ -9,16 +9,17 @@ import { authenticate } from '../middleware/authenticate';
 
 const TEST_SECRET = randomBytes(32).toString('hex');
 
-function buildApp(
-  route: string,
-  ...handlers: ((req: Request, res: Response, next: NextFunction) => void)[]
-) {
+type Handler = (req: Request, res: Response, next: NextFunction) => void;
+
+function buildApp(route: string, ...handlers: Handler[]) {
   const app = express();
   app.use(cookieParser());
   app.get(route, ...handlers);
   app.use(errorHandler);
   return app;
 }
+
+const authApp = buildApp('/protected', authenticate, (_req, res) => res.json({ ok: true }));
 
 beforeAll(() => {
   process.env.JWT_SECRET = TEST_SECRET;
@@ -50,23 +51,20 @@ describe('errorHandler', () => {
 
 describe('authenticate middleware', () => {
   it('tokenなしで401 UNAUTHORIZEDを返す', async () => {
-    const app = buildApp('/protected', authenticate, (_req, res) => res.json({ ok: true }));
-    const res = await request(app).get('/protected');
+    const res = await request(authApp).get('/protected');
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe('UNAUTHORIZED');
   });
 
   it('不正なtokenで401 UNAUTHORIZEDを返す', async () => {
-    const app = buildApp('/protected', authenticate, (_req, res) => res.json({ ok: true }));
-    const res = await request(app).get('/protected').set('Cookie', 'token=invalid-token');
+    const res = await request(authApp).get('/protected').set('Cookie', 'token=invalid-token');
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe('UNAUTHORIZED');
   });
 
   it('有効なtokenでnext()を呼ぶ', async () => {
-    const app = buildApp('/protected', authenticate, (_req, res) => res.json({ ok: true }));
     const token = jwt.sign({ sub: 'user-1' }, TEST_SECRET, { expiresIn: '1h' });
-    const res = await request(app).get('/protected').set('Cookie', `token=${token}`);
+    const res = await request(authApp).get('/protected').set('Cookie', `token=${token}`);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true });
   });

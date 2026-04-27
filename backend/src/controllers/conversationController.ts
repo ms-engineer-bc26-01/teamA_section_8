@@ -1,5 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { AuthRequest } from '../middleware/authenticate';
 import prisma from '../lib/prisma';
 import { AppError, ErrorCode } from '../utils/AppError';
@@ -54,6 +55,59 @@ export async function listConversations(
 
     res.json({ conversations: items, nextCursor });
   } catch (error) {
+    next(error);
+  }
+}
+
+async function findOwnedConversation(id: string, userId: string) {
+  const conv = await prisma.conversation.findUnique({ where: { id } });
+  if (!conv) throw new AppError(ErrorCode.NOT_FOUND, 404, '会話が見つかりません');
+  if (conv.userId !== userId) throw new AppError(ErrorCode.FORBIDDEN, 403, '権限がありません');
+  return conv;
+}
+
+function isP2025(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025';
+}
+
+export async function updateConversation(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const { id } = req.params;
+  try {
+    await findOwnedConversation(id, req.userId!);
+    const updated = await prisma.conversation.update({
+      where: { id },
+      data: { lastMessageAt: new Date() },
+      select: { id: true, startedAt: true, lastMessageAt: true },
+    });
+    res.json({ conversation: updated });
+  } catch (error) {
+    if (isP2025(error)) {
+      next(new AppError(ErrorCode.NOT_FOUND, 404, '会話が見つかりません'));
+      return;
+    }
+    next(error);
+  }
+}
+
+export async function deleteConversation(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const { id } = req.params;
+  try {
+    await findOwnedConversation(id, req.userId!);
+    await prisma.conversation.delete({ where: { id } });
+    res.status(204).send();
+  } catch (error) {
+    if (isP2025(error)) {
+      next(new AppError(ErrorCode.NOT_FOUND, 404, '会話が見つかりません'));
+      return;
+    }
     next(error);
   }
 }

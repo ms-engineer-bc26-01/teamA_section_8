@@ -1,8 +1,16 @@
 import { randomBytes } from 'node:crypto';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
+import { Prisma } from '@prisma/client';
 import app from '../app';
 import prisma from '../lib/prisma';
+
+function makeP2025() {
+  return new Prisma.PrismaClientKnownRequestError('Record to update not found.', {
+    code: 'P2025',
+    clientVersion: '5.0.0',
+  });
+}
 
 jest.mock('../lib/prisma', () => ({
   __esModule: true,
@@ -10,18 +18,25 @@ jest.mock('../lib/prisma', () => ({
     conversation: {
       create: jest.fn(),
       findMany: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
     },
   },
 }));
 
 const TEST_SECRET = randomBytes(32).toString('hex');
 const MOCK_USER_ID = 'user-uuid-1';
+const MOCK_OTHER_USER_ID = 'user-uuid-2';
 
 function makeToken(userId: string = MOCK_USER_ID) {
   return jwt.sign({ sub: userId }, TEST_SECRET, { expiresIn: '1h' });
 }
 
 const mockFindMany = prisma.conversation.findMany as jest.Mock;
+const mockFindUnique = prisma.conversation.findUnique as jest.Mock;
+const mockUpdate = prisma.conversation.update as jest.Mock;
+const mockDelete = prisma.conversation.delete as jest.Mock;
 
 beforeAll(() => {
   process.env.JWT_SECRET = TEST_SECRET;
@@ -110,5 +125,110 @@ describe('GET /api/conversations', () => {
         }),
       }),
     );
+  });
+});
+
+// ─── DELETE /api/conversations/:id ────────────────────────────────────────────
+
+describe('DELETE /api/conversations/:id', () => {
+  it('認証なしで401を返す', async () => {
+    const res = await request(app).delete('/api/conversations/some-id');
+    expect(res.status).toBe(401);
+    expect(res.body.error.code).toBe('UNAUTHORIZED');
+  });
+
+  it('存在しないIDで404 NOT_FOUNDを返す', async () => {
+    mockFindUnique.mockResolvedValue(null);
+    const token = makeToken();
+    const res = await request(app)
+      .delete('/api/conversations/non-existent')
+      .set('Cookie', `token=${token}`);
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe('NOT_FOUND');
+  });
+
+  it('他ユーザーのconversationで403 FORBIDDENを返す', async () => {
+    mockFindUnique.mockResolvedValue({ id: 'conv-1', userId: MOCK_OTHER_USER_ID });
+    const token = makeToken();
+    const res = await request(app)
+      .delete('/api/conversations/conv-1')
+      .set('Cookie', `token=${token}`);
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('FORBIDDEN');
+  });
+
+  it('自分のconversationを削除すると204を返す', async () => {
+    mockFindUnique.mockResolvedValue({ id: 'conv-1', userId: MOCK_USER_ID });
+    mockDelete.mockResolvedValue({});
+    const token = makeToken();
+    const res = await request(app)
+      .delete('/api/conversations/conv-1')
+      .set('Cookie', `token=${token}`);
+    expect(res.status).toBe(204);
+    expect(mockDelete).toHaveBeenCalledWith({ where: { id: 'conv-1' } });
+  });
+
+  it('findUniqueとdeleteの間に削除されてP2025が発生した場合404を返す', async () => {
+    mockFindUnique.mockResolvedValue({ id: 'conv-1', userId: MOCK_USER_ID });
+    mockDelete.mockRejectedValue(makeP2025());
+    const token = makeToken();
+    const res = await request(app)
+      .delete('/api/conversations/conv-1')
+      .set('Cookie', `token=${token}`);
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe('NOT_FOUND');
+  });
+});
+
+// ─── PUT /api/conversations/:id ───────────────────────────────────────────────
+
+describe('PUT /api/conversations/:id', () => {
+  it('認証なしで401を返す', async () => {
+    const res = await request(app).put('/api/conversations/some-id');
+    expect(res.status).toBe(401);
+    expect(res.body.error.code).toBe('UNAUTHORIZED');
+  });
+
+  it('存在しないIDで404 NOT_FOUNDを返す', async () => {
+    mockFindUnique.mockResolvedValue(null);
+    const token = makeToken();
+    const res = await request(app)
+      .put('/api/conversations/non-existent')
+      .set('Cookie', `token=${token}`);
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe('NOT_FOUND');
+  });
+
+  it('他ユーザーのconversationで403 FORBIDDENを返す', async () => {
+    mockFindUnique.mockResolvedValue({ id: 'conv-1', userId: MOCK_OTHER_USER_ID });
+    const token = makeToken();
+    const res = await request(app)
+      .put('/api/conversations/conv-1')
+      .set('Cookie', `token=${token}`);
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('FORBIDDEN');
+  });
+
+  it('自分のconversationを更新すると200と更新後のconversationを返す', async () => {
+    const now = new Date();
+    mockFindUnique.mockResolvedValue({ id: 'conv-1', userId: MOCK_USER_ID });
+    mockUpdate.mockResolvedValue({ id: 'conv-1', startedAt: now, lastMessageAt: now });
+    const token = makeToken();
+    const res = await request(app)
+      .put('/api/conversations/conv-1')
+      .set('Cookie', `token=${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.conversation.id).toBe('conv-1');
+  });
+
+  it('findUniqueとupdateの間に削除されてP2025が発生した場合404を返す', async () => {
+    mockFindUnique.mockResolvedValue({ id: 'conv-1', userId: MOCK_USER_ID });
+    mockUpdate.mockRejectedValue(makeP2025());
+    const token = makeToken();
+    const res = await request(app)
+      .put('/api/conversations/conv-1')
+      .set('Cookie', `token=${token}`);
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe('NOT_FOUND');
   });
 });
