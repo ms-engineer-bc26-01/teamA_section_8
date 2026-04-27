@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import app from '../app';
@@ -13,15 +14,13 @@ jest.mock('../lib/prisma', () => ({
   },
 }));
 
-const TEST_SECRET = 'test-secret';
+const TEST_SECRET = randomBytes(32).toString('hex');
 const MOCK_USER_ID = 'user-uuid-1';
-const MOCK_OTHER_USER_ID = 'user-uuid-2';
 
 function makeToken(userId: string = MOCK_USER_ID) {
   return jwt.sign({ sub: userId }, TEST_SECRET, { expiresIn: '1h' });
 }
 
-const mockCreate = prisma.conversation.create as jest.Mock;
 const mockFindMany = prisma.conversation.findMany as jest.Mock;
 
 beforeAll(() => {
