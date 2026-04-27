@@ -104,7 +104,7 @@ binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 2. `backend/Dockerfile`, `backend/prisma/schema.prisma`, `backend/prisma/init.sql` を配置
 3. `frontend/Dockerfile` を配置
 4. `nginx/nginx.conf` を配置
-5. 配置 PR は**他メンバー2名の Approve を取得**してから `develop` にマージ
+5. 配置 PR は**他メンバー2名の Approve を取得**してから `main` にマージする
 6. 各自 `cp .env.example .env` で自分用の環境変数ファイルを作成(API キー本体は **メンバーC から DM で受領**)
 7. `docker compose up --build` で起動確認
 8. `docker compose exec backend npx prisma migrate dev --name init` で初回マイグレーション
