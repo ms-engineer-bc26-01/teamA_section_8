@@ -57,3 +57,58 @@ export async function listConversations(
     next(error);
   }
 }
+
+async function findOwnedConversation(
+  id: string,
+  userId: string,
+  next: NextFunction,
+) {
+  const conv = await prisma.conversation.findUnique({ where: { id } });
+  if (!conv) {
+    next(new AppError(ErrorCode.NOT_FOUND, 404, '会話が見つかりません'));
+    return null;
+  }
+  if (conv.userId !== userId) {
+    next(new AppError(ErrorCode.FORBIDDEN, 403, '権限がありません'));
+    return null;
+  }
+  return conv;
+}
+
+export async function updateConversation(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const { id } = req.params;
+  try {
+    const conv = await findOwnedConversation(id, req.userId!, next);
+    if (!conv) return;
+
+    const updated = await prisma.conversation.update({
+      where: { id },
+      data: { lastMessageAt: new Date() },
+      select: { id: true, startedAt: true, lastMessageAt: true },
+    });
+    res.json({ conversation: updated });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteConversation(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const { id } = req.params;
+  try {
+    const conv = await findOwnedConversation(id, req.userId!, next);
+    if (!conv) return;
+
+    await prisma.conversation.delete({ where: { id } });
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}
