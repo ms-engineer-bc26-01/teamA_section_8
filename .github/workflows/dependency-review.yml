@@ -1,7 +1,7 @@
 # ==============================================================
 # .github/workflows/dependency-review.yml
 # 目的: PRに含まれる依存パッケージの脆弱性・ライセンスを自動チェック
-# トリガー: main / feature へのPR
+# トリガー: feature/* → main へのPR
 #
 # ── チームへの補足説明 ─────────────────────────────────────────
 # このワークフローは npm install や package.json の変更が含まれる
@@ -29,7 +29,6 @@ on:
   pull_request:
     branches:
       - main
-      - develop
 
 permissions:
   contents: read
