@@ -1,6 +1,6 @@
 # ==============================================================
 # .github/workflows/ci.yml
-# 対象ブランチ: feature / main へのPR、mainへのpush
+# 対象ブランチ: feature/* → main へのPR、main へのpush
 # 担当: S0-C-03 (メンバーC担当タスク / リーダーA代行)
 #
 # ── ジョブ構成 ────────────────────────────────────────────────
@@ -24,7 +24,6 @@ name: CI
 on:
   pull_request:
     branches:
-      - feature
       - main
   push:
     branches:
@@ -131,7 +130,7 @@ jobs:
 
   # ─────────────────────────────────────────────
   # Job 3: Prisma migrate dry-run
-  # main / develop 両方の PR でマイグレーション整合性を確認する。
+  # main へのPRでマイグレーション整合性を確認する。
   # DB が必要なため postgres サービスコンテナを利用。
   #
   # ▶ migrate deploy を使う理由:
