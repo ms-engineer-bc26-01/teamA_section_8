@@ -9,6 +9,11 @@ export function errorHandler(
   _next: NextFunction,
 ): void {
   if (err instanceof AppError) {
+    if (err.statusCode >= 500) {
+      logger.error(err);
+    } else {
+      logger.warn({ code: err.code, message: err.message }, 'client error');
+    }
     res.status(err.statusCode).json({ error: { code: err.code, message: err.message } });
     return;
   }

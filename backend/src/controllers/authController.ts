@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import prisma from '../lib/prisma';
 import { AppError, ErrorCode } from '../utils/AppError';
 
@@ -9,13 +10,13 @@ const COOKIE_NAME = 'token';
 const SALT_ROUNDS = 10;
 
 const registerSchema = z.object({
-  email: z.string().email({ message: '有効なメールアドレスを入力してください' }),
+  email: z.email({ message: '有効なメールアドレスを入力してください' }),
   password: z.string().min(8, { message: 'パスワードは8文字以上で入力してください' }),
   displayName: z.string().min(1).max(100, { message: '表示名は1〜100文字で入力してください' }),
 });
 
 const loginSchema = z.object({
-  email: z.string().email({ message: '有効なメールアドレスを入力してください' }),
+  email: z.email({ message: '有効なメールアドレスを入力してください' }),
   password: z.string().min(1, { message: 'パスワードは必須です' }),
 });
 
@@ -44,6 +45,10 @@ export async function register(req: Request, res: Response, next: NextFunction):
     setTokenCookie(res, token);
     res.status(201).json({ user });
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      next(new AppError(ErrorCode.EMAIL_EXISTS, 409, 'このメールアドレスは既に登録済みです'));
+      return;
+    }
     next(error);
   }
 }
