@@ -14,7 +14,7 @@ const loginSchema = z.object({
     .string()
     .min(1, "メールアドレスを入力してください")
     .email("正しいメールアドレスの形式で入力してください"),
-  password: z.string().min(6, "パスワードは6文字以上で入力してください"),
+  password: z.string().min(8, "パスワードは8文字以上で入力してください"),
 });
 
 // スキーマからTypeScriptの型を自動生成
