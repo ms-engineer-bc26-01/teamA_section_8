@@ -1,0 +1,33 @@
+# ==============================================================
+# .github/workflows/dependency-review.yml
+# 目的: PRに含まれる依存パッケージの脆弱性を自動チェック
+# トリガー: main / develop へのPR
+# ==============================================================
+
+name: Dependency Review
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          # 高・重大な脆弱性のみ失敗扱い
+          fail-on-severity: high
+          # ライセンス違反もチェック
+          deny-licenses: GPL-2.0, GPL-3.0, LGPL-2.0, LGPL-2.1
