@@ -1,20 +1,40 @@
 import { http, HttpResponse } from "msw";
 
 export const handlers = [
-  // /health へのGETリクエストに対するダミー応答
-  http.get("/health", () => {
-    return HttpResponse.json({ status: "ok", message: "MSW is running!" });
+  // backend の HealthResponseBody に合わせる
+  http.get("/api/health", () => {
+    return HttpResponse.json({ status: "ok" });
   }),
 
-  // /auth/login へのPOSTリクエストに対するダミー応答
-  http.post("/auth/login", async () => {
-    // ログイン成功したフリをして、適当なトークンを返す
-    return HttpResponse.json({
-      token: "dummy-jwt-token-123456789",
-      user: {
-        id: "1",
-        display_name: "テストユーザー",
+  // backend の LoginResponseBody + Cookie認証方針に合わせる
+  http.post("/api/auth/login", async () => {
+    return HttpResponse.json(
+      {
+        user: {
+          id: "uuid-1",
+          email: "test@example.com",
+          displayName: "テストユーザー",
+        },
       },
-    });
+      {
+        status: 200,
+        headers: {
+          "Set-Cookie": "token=mock-jwt-token; HttpOnly; Path=/",
+        },
+      },
+    );
+  }),
+
+  // 失敗系の例（必要なら使う）
+  http.post("/api/auth/login/error", async () => {
+    return HttpResponse.json(
+      {
+        error: {
+          code: "INVALID_CREDENTIALS",
+          message: "メールアドレスまたはパスワードが正しくありません",
+        },
+      },
+      { status: 401 },
+    );
   }),
 ];
