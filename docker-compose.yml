@@ -21,10 +21,10 @@ services:
       - "3000:3000"
     volumes:
       - ./frontend:/app
-      - /app/node_modules
+      - /app/node_modules  # ← 匿名ボリュームで上書きを防止(重要)
     environment:
       - VITE_API_BASE_URL=/api
-      - CHOKIDAR_USEPOLLING=true
+      - CHOKIDAR_USEPOLLING=true  # Docker on Mac/Win でHMRが効かない時の保険
       - TZ=Asia/Tokyo
     depends_on:
       - backend
@@ -47,14 +47,14 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
-      - /app/node_modules
+      - /app/node_modules  # ← 同じく保護
     env_file:
       - .env
     environment:
       - TZ=Asia/Tokyo
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_healthy  # DB 起動完了を待つ
     develop:
       watch:
         - action: sync
