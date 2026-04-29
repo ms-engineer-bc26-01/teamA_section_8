@@ -8,6 +8,7 @@ import { Input } from "../components/common/Input";
 import { Card } from "../components/common/Card";
 import { Toast } from "../components/common/Toast"; // 2. Toast をインポート
 import { useAuthStore } from "../store/authStore";
+import apiClient from "../api/apiClient"; // ✨ 1. apiClient をインポート
 
 const loginSchema = z.object({
   email: z
@@ -37,21 +38,17 @@ export const Login: React.FC = () => {
   // 3. 送信時の処理
   const onSubmit = async (data: LoginFormInputs) => {
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      // ✨ 2. fetch の代わりに apiClient を使う
+      const response = await apiClient.post("/auth/login", data);
 
-      if (!response.ok) throw new Error();
-
-      const result = await response.json();
-
-      login(result.user);
+      // Cookie認証のため token はストア不要。user オブジェクトのみ保存
+      login(response.data.user);
       navigate("/home");
     } catch (error) {
       console.error("Login failed:", error);
-      alert("ログインに失敗しました。");
+      alert(
+        "ログインに失敗しました。メールアドレスかパスワードを確認してください。",
+      );
     }
   };
 
