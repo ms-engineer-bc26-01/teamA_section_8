@@ -1,28 +1,29 @@
-import { Request, Response } from 'express';
-import { Prisma } from '@prisma/client';
+import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import prisma from '../lib/prisma';
+import { AppError, ErrorCode } from '../utils/AppError';
 
 const COOKIE_NAME = 'token';
 const SALT_ROUNDS = 10;
 
 const registerSchema = z.object({
-  email: z.string().email({ message: '有効なメールアドレスを入力してください' }),
+  email: z.email({ message: '有効なメールアドレスを入力してください' }),
   password: z.string().min(8, { message: 'パスワードは8文字以上で入力してください' }),
   displayName: z.string().min(1).max(100, { message: '表示名は1〜100文字で入力してください' }),
 });
 
 const loginSchema = z.object({
-  email: z.string().email({ message: '有効なメールアドレスを入力してください' }),
+  email: z.email({ message: '有効なメールアドレスを入力してください' }),
   password: z.string().min(1, { message: 'パスワードは必須です' }),
 });
 
-export async function register(req: Request, res: Response): Promise<void> {
+export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
   const result = registerSchema.safeParse(req.body);
   if (!result.success) {
-    res.status(400).json({ message: result.error.issues[0].message });
+    next(new AppError(ErrorCode.VALIDATION_ERROR, 400, result.error.issues[0].message));
     return;
   }
   const { email, password, displayName } = result.data;
@@ -30,7 +31,7 @@ export async function register(req: Request, res: Response): Promise<void> {
   try {
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      res.status(409).json({ message: 'このメールアドレスは既に登録済みです' });
+      next(new AppError(ErrorCode.EMAIL_EXISTS, 409, 'このメールアドレスは既に登録済みです'));
       return;
     }
 
@@ -45,33 +46,25 @@ export async function register(req: Request, res: Response): Promise<void> {
     res.status(201).json({ user });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      res.status(409).json({ message: 'このメールアドレスは既に登録済みです' });
+      next(new AppError(ErrorCode.EMAIL_EXISTS, 409, 'このメールアドレスは既に登録済みです'));
       return;
     }
-
-    console.error(error);
-    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+    next(error);
   }
 }
 
-export async function login(req: Request, res: Response): Promise<void> {
+export async function login(req: Request, res: Response, next: NextFunction): Promise<void> {
   const result = loginSchema.safeParse(req.body);
   if (!result.success) {
-    res.status(400).json({ message: result.error.issues[0].message });
+    next(new AppError(ErrorCode.VALIDATION_ERROR, 400, result.error.issues[0].message));
     return;
   }
   const { email, password } = result.data;
 
   try {
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      res.status(401).json({ message: 'メールアドレスまたはパスワードが正しくありません' });
-      return;
-    }
-
-    const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) {
-      res.status(401).json({ message: 'メールアドレスまたはパスワードが正しくありません' });
+    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+      next(new AppError(ErrorCode.INVALID_CREDENTIALS, 401, 'メールアドレスまたはパスワードが正しくありません'));
       return;
     }
 
@@ -79,8 +72,7 @@ export async function login(req: Request, res: Response): Promise<void> {
     setTokenCookie(res, token);
     res.json({ user: { id: user.id, email: user.email, displayName: user.displayName } });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+    next(error);
   }
 }
 

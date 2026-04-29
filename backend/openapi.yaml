@@ -1,0 +1,476 @@
+openapi: '3.0.3'
+info:
+  title: Emotion Tracking × AI Self-Care Coach — Backend API
+  version: '0.1.0'
+  description: |
+    Sprint 1 実装済みエンドポイントの仕様書。
+
+    **認証**: HttpOnly Cookie ベース（Bearer header ではない）。
+    ログイン・登録後にサーバーが `Set-Cookie: token=<jwt>` をセット。
+    フロントエンドは認証必須エンドポイントの fetch で必ず `credentials: 'include'` を指定すること。
+
+    **⚠️ パス名の差異**: チームマニュアル Section 6 は `/api/chat/*` と記載しているが、
+    現在の実装は `/api/conversations`。S2 スプリントでリネームまたはエイリアス対応を検討中。
+
+servers:
+  - url: http://localhost:8000/api
+    description: ローカル開発環境
+
+tags:
+  - name: health
+    description: ヘルスチェック
+  - name: auth
+    description: 認証（Cookie ベース）
+  - name: conversations
+    description: 会話 — タスクカード上の「日記(diary)」に相当
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+      description: |
+        HttpOnly Cookie として `Set-Cookie: token=<jwt>` でセットされる。
+        有効期限: 7日。本番環境では Secure フラグ付き。
+        Swagger UI からは手動で Cookie を設定できないため、curl または Postman で動作確認すること。
+
+  schemas:
+    ErrorCode:
+      type: string
+      enum:
+        - VALIDATION_ERROR
+        - INVALID_CREDENTIALS
+        - UNAUTHORIZED
+        - FORBIDDEN
+        - NOT_FOUND
+        - EMAIL_EXISTS
+        - INTERNAL_ERROR
+
+    ApiError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              $ref: '#/components/schemas/ErrorCode'
+            message:
+              type: string
+              example: エラーの詳細メッセージ
+
+    UserPublic:
+      type: object
+      required:
+        - id
+        - email
+        - displayName
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        displayName:
+          type: string
+          description: キャメルケース（display_name ではない）
+          example: 山田太郎
+
+    UserPublicWithTimestamp:
+      allOf:
+        - $ref: '#/components/schemas/UserPublic'
+        - type: object
+          required:
+            - createdAt
+          properties:
+            createdAt:
+              type: string
+              format: date-time
+              example: '2026-04-28T10:00:00.000Z'
+
+    Conversation:
+      type: object
+      required:
+        - id
+        - startedAt
+        - lastMessageAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440001
+        startedAt:
+          type: string
+          format: date-time
+          example: '2026-04-28T10:00:00.000Z'
+        lastMessageAt:
+          type: string
+          format: date-time
+          example: '2026-04-28T10:30:00.000Z'
+
+  responses:
+    Unauthorized:
+      description: 未認証（Cookie なし / 無効）
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            error:
+              code: UNAUTHORIZED
+              message: 認証が必要です
+
+    Forbidden:
+      description: アクセス権限なし（他ユーザーのリソース）
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            error:
+              code: FORBIDDEN
+              message: 権限がありません
+
+    NotFound:
+      description: リソースが存在しない
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            error:
+              code: NOT_FOUND
+              message: 会話が見つかりません
+
+    ValidationError:
+      description: バリデーションエラー
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: 有効なメールアドレスを入力してください
+
+    InternalError:
+      description: サーバー内部エラー
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            error:
+              code: INTERNAL_ERROR
+              message: サーバーでエラーが発生しました
+
+paths:
+  /health:
+    get:
+      tags:
+        - health
+      summary: ヘルスチェック
+      responses:
+        '200':
+          description: サーバー正常稼働中
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - ok
+              example:
+                status: ok
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/register:
+    post:
+      tags:
+        - auth
+      summary: ユーザー登録
+      description: |
+        新規ユーザーを作成し、HttpOnly Cookie でトークンをセットする。
+        登録成功後は `/api/auth/login` なしでそのままリクエスト可能。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - displayName
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  minLength: 8
+                  example: password123
+                displayName:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: 山田太郎
+      responses:
+        '201':
+          description: 登録成功（Set-Cookie: token=<jwt> がセットされる）
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - user
+                properties:
+                  user:
+                    $ref: '#/components/schemas/UserPublicWithTimestamp'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: メールアドレス重複
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                error:
+                  code: EMAIL_EXISTS
+                  message: このメールアドレスは既に登録済みです
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/login:
+    post:
+      tags:
+        - auth
+      summary: ログイン
+      description: |
+        認証成功後、HttpOnly Cookie でトークンをセットする。
+        レスポンスボディにトークンは含まれない。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  example: password123
+      responses:
+        '200':
+          description: ログイン成功（Set-Cookie: token=<jwt> がセットされる）
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - user
+                properties:
+                  user:
+                    $ref: '#/components/schemas/UserPublic'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: 認証失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                error:
+                  code: INVALID_CREDENTIALS
+                  message: メールアドレスまたはパスワードが正しくありません
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/logout:
+    post:
+      tags:
+        - auth
+      summary: ログアウト
+      description: |
+        Cookie を削除する。Cookie がなくても 200 を返す（冪等性のため）。
+        認証不要エンドポイントだが、ログイン済みの場合は Cookie がクリアされる。
+      security: []
+      responses:
+        '200':
+          description: ログアウト成功（Cookie がクリアされる）
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                properties:
+                  message:
+                    type: string
+                    example: ログアウトしました
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /conversations:
+    get:
+      tags:
+        - conversations
+      summary: 会話一覧（カーソルページング）
+      description: |
+        `lastMessageAt` の降順で返す。
+        `cursor` は前ページ末尾の `lastMessageAt` 値（ISO 8601）をそのまま渡す。
+        `nextCursor` が `null` なら最終ページ。
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: cursor
+          in: query
+          description: 前ページ末尾の lastMessageAt（ISO 8601 datetime）。これより古いデータを取得。
+          required: false
+          schema:
+            type: string
+            format: date-time
+          example: '2026-04-28T10:30:00.000Z'
+        - name: limit
+          in: query
+          description: 取得件数（1〜100、デフォルト 20）
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: 一覧取得成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - conversations
+                  - nextCursor
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Conversation'
+                  nextCursor:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    description: 次ページ取得用カーソル。最終ページの場合 null。
+                    example: '2026-04-27T09:00:00.000Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      tags:
+        - conversations
+      summary: 新規会話作成
+      description: リクエストボディ不要。認証ユーザーに紐づく会話を作成する。
+      security:
+        - cookieAuth: []
+      responses:
+        '201':
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - conversation
+                properties:
+                  conversation:
+                    $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /conversations/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: 会話の UUID
+        schema:
+          type: string
+          format: uuid
+        example: 550e8400-e29b-41d4-a716-446655440001
+
+    put:
+      tags:
+        - conversations
+      summary: 会話の lastMessageAt を現在時刻に更新
+      description: |
+        リクエストボディ不要。`lastMessageAt` を現在の UTC 時刻に更新する。
+        メッセージ送信後などにフロントから呼び出す用途を想定。
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - conversation
+                properties:
+                  conversation:
+                    $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      tags:
+        - conversations
+      summary: 会話の削除
+      description: |
+        204 No Content を返す。レスポンスボディは空なので `response.json()` を呼ばないこと。
+      security:
+        - cookieAuth: []
+      responses:
+        '204':
+          description: 削除成功（レスポンスボディなし）
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'

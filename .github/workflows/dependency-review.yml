@@ -1,0 +1,56 @@
+# ==============================================================
+# .github/workflows/dependency-review.yml
+# 目的: PRに含まれる依存パッケージの脆弱性・ライセンスを自動チェック
+# トリガー: feature/* → main へのPR
+#
+# ── チームへの補足説明 ─────────────────────────────────────────
+# このワークフローは npm install や package.json の変更が含まれる
+# PR を作成した際に自動で実行される。
+#
+# ▶ fail-on-severity: high
+#   HIGH / CRITICAL の脆弱性が含まれるパッケージを追加すると PR がブロックされる。
+#   → 依存パッケージを追加するときは npm audit も手元で確認する習慣をつけること。
+#
+# ▶ deny-licenses
+#   以下のライセンスは商用利用・ソース公開義務の観点から使用禁止とする:
+#   GPL-2.0, GPL-3.0  : 派生物のソースコード公開が必要
+#   LGPL-2.0, LGPL-2.1: 一部条件でソース公開が必要
+#   → Sprint 3で追加する外部APIクライアント等も対象になるので注意。
+#      「なぜか PR が落ちる」場合はまずここを疑うこと。
+#
+# ▶ comment-summary-in-pr: always
+#   PRにレビューコメントとして脆弱性・ライセンス情報のサマリーを投稿する。
+#   問題がない場合も「問題なし」のサマリーが表示される。
+# ==============================================================
+
+name: Dependency Review
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          # 高・重大な脆弱性のみ失敗扱い（moderate 以下はスルー）
+          fail-on-severity: high
+
+          # 商用利用に問題のあるライセンスをブロック
+          deny-licenses: GPL-2.0, GPL-3.0, LGPL-2.0, LGPL-2.1
+
+          # PRに結果サマリーをコメント投稿する（問題なしの場合も表示）
+          # → レビュアーが依存関係の変化を把握しやすくなる
+          comment-summary-in-pr: always
