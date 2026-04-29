@@ -44,10 +44,10 @@ export const Login: React.FC = () => {
       // if (!response.ok) throw response; // 失敗時は response を throw
 
       // 現状はモックログイン処理
-      login("dummy-jwt-token", {
+      login({
         id: "1",
-        displayName: "ゲスト",
-        email: data.email,
+         displayName: "ゲスト",
+         email: data.email,
       });
       navigate("/home");
     } catch (error) {
