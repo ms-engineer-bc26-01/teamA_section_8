@@ -11,11 +11,13 @@ export const handlers = [
     }
 
     return HttpResponse.json({
-      token: "mock-jwt-token-s1-b-03", // DoD: token 取得
       user: {
         id: "user-uuid-001",
         displayName: "テスター",
         email: email,
+      },
+      headers: {
+        "Set-Cookie": "token=mock-jwt-token; HttpOnly; Path=/",
       },
     });
   }),
@@ -28,11 +30,13 @@ export const handlers = [
     };
 
     return HttpResponse.json({
-      token: "mock-jwt-token-new-user",
       user: {
         id: "user-uuid-002",
         displayName: displayName,
         email: email,
+      },
+      headers: {
+        "Set-Cookie": "token=mock-jwt-token; HttpOnly; Path=/",
       },
     });
   }),
