@@ -1,4 +1,4 @@
-import { http, HttpResponse } from "msw";
+import { http, HttpResponse, delay } from "msw";
 
 export const handlers = [
   // ログインハンドラ
@@ -34,6 +34,22 @@ export const handlers = [
         displayName: displayName,
         email: email,
       },
+    });
+  }),
+  // 人工知能とのチャット通信を偽装する処理を追加
+  http.post("/api/chat", async ({ request }) => {
+    // 画面側から送信された内容を読み取る
+    const { message } = (await request.json()) as { message: string };
+
+    // 実際の通信にかかる時間を疑似的に再現（一点五秒の待機）
+    await delay(1500);
+
+    // 人工知能からの返答として偽のデータを返す
+    return HttpResponse.json({
+      id: "chat-uuid-001",
+      sender: "ai",
+      message: `「${message}」ですね。今日もお疲れ様です！ゆっくり休んでくださいね。`,
+      createdAt: new Date().toISOString(),
     });
   }),
 ];
