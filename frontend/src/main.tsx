@@ -8,33 +8,28 @@ import "./styles/index.css";
  * 定義を呼び出しより前に書くことで、エラーを防ぎます。
  */
 async function enableMocking() {
-  // Viteの環境変数で開発環境かどうかを判定
-  if (!import.meta.env.DEV) {
-    return;
+  // ✅ import() をブロック内に収める（Rollup DCE に優しい）
+  if (import.meta.env.DEV) {
+    const { worker } = await import("./mocks/browser");
+    return worker.start({ onUnhandledRequest: "bypass" });
   }
-
-  // 非同期でMSWのワーカーをインポートして起動
-  const { worker } = await import("./mocks/browser");
-
-  // worker.start() は Promise を返すので return します
-  return worker.start({
-    onUnhandledRequest: "bypass", // 未定義のAPIリクエストを無視する設定（開発をスムーズにするため）
-  });
 }
 
-// MSWの準備が完了してからReactを起動（レンダリング）する
 enableMocking()
   .then(() => {
     const container = document.getElementById("root");
-
     if (container) {
+      // ✅ null チェック維持
       createRoot(container).render(
         <StrictMode>
+          {" "}
+          {/* ✅ StrictMode 維持 */}
           <App />
         </StrictMode>,
       );
     }
   })
   .catch((err) => {
+    // ✅ エラーハンドリング維持
     console.error("MSWの起動に失敗しました:", err);
   });

@@ -114,3 +114,5 @@ npm run build    # 本番ビルド（tsc + vite build）
 npm run lint     # ESLint 実行
 npm run preview  # ビルド成果物のプレビュー
 ```
+
+MSW バージョンアップ時: cd frontend && npx msw init public/ を再実行すること
