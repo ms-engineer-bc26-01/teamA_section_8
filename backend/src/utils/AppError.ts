@@ -6,6 +6,7 @@ export const ErrorCode = {
   NOT_FOUND: 'NOT_FOUND',
   EMAIL_EXISTS: 'EMAIL_EXISTS',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
+  AI_ERROR: 'AI_ERROR',
 } as const;
 
 export type ErrorCodeType = (typeof ErrorCode)[keyof typeof ErrorCode];

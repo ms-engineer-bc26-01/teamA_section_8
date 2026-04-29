@@ -93,7 +93,8 @@ export type ErrorCode =
   | 'FORBIDDEN'            // 403: 他ユーザーのリソースへのアクセス
   | 'NOT_FOUND'            // 404: 対象リソースが存在しない
   | 'EMAIL_EXISTS'         // 409: 登録済みメールアドレス
-  | 'INTERNAL_ERROR';      // 500: サーバー内部エラー
+  | 'INTERNAL_ERROR'       // 500: サーバー内部エラー
+  | 'AI_ERROR';            // 502: OpenAI API障害・タイムアウト
 
 /**
  * 全エンドポイント共通のエラーレスポンス形式
@@ -316,6 +317,20 @@ export interface AssistantMessage {
 export interface SendMessageResponseBody {
   message: AssistantMessage;
   // suggestions は Sprint 3 で追加予定
+}
+
+// ── GET /api/chat/:conversationId/history（Sprint 2 実装予定）───────────────
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant'; // system メッセージは返却しない
+  content: string;
+  emotionScore: EmotionScore | null;
+  createdAt: string; // ISO 8601 UTC
+}
+
+export interface GetChatHistoryResponseBody {
+  messages: ChatMessage[];
 }
 
 // ── GET /api/emotions/trend（Sprint 2 実装予定）──────────────────────────
