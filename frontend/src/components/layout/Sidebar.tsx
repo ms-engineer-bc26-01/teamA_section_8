@@ -36,13 +36,13 @@ export const Sidebar: React.FC = () => {
       </div>
 
       <nav className="flex-1 px-4 space-y-2">
-        {menuItems.map((item, index) => {
+        {menuItems.map((item) => {
           // 今のURLとメニューのpathが一致するか判定
           const isActive = location.pathname === item.path;
 
           return (
             <Link // ← button から Link に変更
-              key={index}
+              key={item.path} // ← index から path に変更（pathはユニークなはずなので）
               to={item.path} // ← 遷移先のURLを指定
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl transition-all ${
                 isActive

@@ -53,6 +53,7 @@ export const Home: React.FC = () => {
               />
               <Button className="w-full flex items-center justify-center gap-2 py-2">
                 <Send size={16} />
+                {/* TODO: S1-B-06 のAPI連携後に実装 */}
                 <span>きろくする</span>
               </Button>
             </div>
