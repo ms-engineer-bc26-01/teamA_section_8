@@ -17,7 +17,9 @@ function App() {
         <Route path="/register" element={<Register />} />
 
         {/* S0-B-04 手動確認用のプレビュールート（開発時のみ使用） */}
-        <Route path="/ui-preview" element={<UiPreview />} />
+        {import.meta.env.DEV && (
+          <Route path="/ui-preview" element={<UiPreview />} />
+        )}
 
         {/* --- レイアウトを持つルート（ログイン後） --- */}
         <Route element={<Layout />}>
