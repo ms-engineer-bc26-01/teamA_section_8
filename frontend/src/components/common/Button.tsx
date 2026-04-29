@@ -11,12 +11,8 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyle =
-<<<<<<< HEAD
-    "px-6 py-3 rounded-full font-medium transition-all duration-300 ease-out active:scale-95";
-=======
     "px-6 py-3 rounded-full font-medium transition-all duration-300 ease-out active:scale-95 " +
     "disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100";
->>>>>>> main
 
   const variants = {
     primary:
