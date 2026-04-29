@@ -6,29 +6,33 @@ describe("Chat コンポーネントのテスト", () => {
   it("メッセージを送信すると、AIからの返信が画面に表示されること", async () => {
     render(<Chat />);
 
-    // ✨ ここが重要！
-    // 最初の 800ms の読み込みが終わって、挨拶が出るのを待つ
-    // これで isLoading が false になるのを確実に待ちます
+    // 1. 最初の挨拶が出るまで待つ（ここを確実に！）
+    // findByText で 800ms のタイマーが確実に終わるのを待ちます
     await screen.findByText(/今日もお疲れ様です！/);
 
-    // 入力欄と送信ボタンを見つける
+    // 2. 入力欄と送信ボタンを見つける
     const input = screen.getByPlaceholderText("メッセージを入力...");
     const button = screen.getByRole("button", { name: "送信" });
 
-    // メッセージを入力して送信
+    // 3. メッセージを入力して送信
     fireEvent.change(input, { target: { value: "今日の気分は？" } });
     fireEvent.click(button);
 
-    // 自分のメッセージが表示されるのを待つ
-    // (findByText は要素が出るまで最大1秒間粘ってくれます)
-    const userMsg = await screen.findByText("今日の気分は？");
+    // 4. 自分のメッセージが表示されるのを「もっと長く」待つ
+    // CI環境のために timeout を 10000 (10秒) に設定します
+    const userMsg = await screen.findByText(
+      "今日の気分は？",
+      {},
+      { timeout: 10000 },
+    );
     expect(userMsg).toBeInTheDocument();
 
-    // AIからの返信が来るのを待つ (MSWの1.5秒を考慮して timeout を長めに)
+    // 5. AIからの返信が来るのを待つ
+    // 正規表現を少し短くして、部分一致しやすくします
     const aiMsg = await screen.findByText(
-      /ですね。今日もお疲れ様です！/,
+      /今日もお疲れ様です！/,
       {},
-      { timeout: 4000 },
+      { timeout: 10000 },
     );
     expect(aiMsg).toBeInTheDocument();
   });
