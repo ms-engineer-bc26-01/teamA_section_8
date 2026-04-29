@@ -15,16 +15,18 @@ export type FetchUtilOptions = {
  *
  * - 指定時間でタイムアウト
  * - 失敗時に指定回数までリトライ
- * - 最終的に失敗した場合は例外を投げず、ExternalResult<T> の失敗形を返す
+ * - 最終的に失敗した場合は例外を投げず ExternalResult<T> の失敗形を返す
  *
  * @param url - 取得先URL
- * @param mapToItems - レスポンス（unknown）をアイテム配列に変換する関数
+ * @param mapToData - レスポンス（unknown）を T 型に変換する関数
+ * @param source - データ提供元の識別子（例: 'maps', 'connpass', 'weather'）
  * @param options - timeout/retry の設定
- * @returns ExternalResult<T>（成功時 items、失敗時 空配列）
+ * @returns ExternalResult<T>
  */
 export async function fetchExternal<T>(
   url: string,
-  mapToItems: (data: unknown) => T[],
+  mapToData: (data: unknown) => T,
+  source: string,
   options: FetchUtilOptions = {}
 ): Promise<ExternalResult<T>> {
   const timeoutMs = options.timeoutMs ?? 5000;
@@ -39,13 +41,17 @@ export async function fetchExternal<T>(
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        // HTTPエラー（4xx, 5xx）はリトライ対象
+        // レート制限（429）は専用エラーで返す
+        if (response.status === 429) {
+          return { ok: false, error: 'rate_limit', source };
+        }
+        // その他のHTTPエラー（4xx, 5xx）はリトライ対象
         continue;
       }
 
-      const data: unknown = await response.json();
-      const items = mapToItems(data);
-      return { ok: true, items };
+      const rawData: unknown = await response.json();
+      const data = mapToData(rawData);
+      return { ok: true, data, source };
     } catch (error) {
       clearTimeout(timeoutId);
       // タイムアウト or ネットワークエラー → 次のリトライへ
@@ -54,6 +60,5 @@ export async function fetchExternal<T>(
   }
 
   // 全試行が失敗した場合
-  return { ok: false, items: [] };
+  return { ok: false, error: 'timeout', source };
 }
-
