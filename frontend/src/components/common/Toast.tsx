@@ -3,6 +3,12 @@ import React from "react";
 type ToastProps = {
   message: string;
   type?: "success" | "error" | "info";
+<<<<<<< HEAD
+=======
+  visible?: boolean;
+  duration?: number; // ms, 0 = 手動消去
+  onClose?: () => void;
+>>>>>>> main
 };
 
 export const Toast: React.FC<ToastProps> = ({ message, type = "success" }) => {
