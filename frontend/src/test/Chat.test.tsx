@@ -1,6 +1,8 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { Chat } from "../pages/Chat"; // パスを確認してくださいね！
+
+window.HTMLElement.prototype.scrollIntoView = vi.fn();
 
 describe("Chat コンポーネントのテスト", () => {
   it("メッセージを送信すると、AIからの返信が画面に表示されること", async () => {
