@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
-import apiClient from "../api/apiClient"; // ここに理香さんのクライアントをインポート
+import { useState, useEffect, useRef } from "react"; // useRef を追加
+import apiClient from "../api/apiClient";
 
-// 型定義をメッセージの形式に合わせて調整
 type Message = {
   id: string;
   role: "assistant" | "user";
@@ -11,11 +10,21 @@ type Message = {
 export const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
-  const [isLoading, setIsLoading] = useState(true); // 初回のローディング用
-  const [isSending, setIsSending] = useState(false); // 送信中のボタン制御用
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
 
-  // 1. 初回ロード：最初の挨拶だけダミーではなく「取得」するようにしてもいいですが、
-  // 今回はそのまま最初のメッセージを表示するシミュレーションを残します
+  // ✨ 自動スクロールのための「目印」
+  const scrollEndRef = useRef<HTMLDivElement>(null);
+
+  // ✨ メッセージが増えたり、送信中ステータスが変わったら一番下までスクロール
+  const scrollToBottom = () => {
+    scrollEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isSending]); // messages か isSending が変わるたびに実行
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setMessages([
@@ -30,11 +39,9 @@ export const Chat = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // 2. 送信処理のロジック
   const handleSend = async () => {
     if (!inputText.trim() || isSending) return;
 
-    // ユーザーの発言を画面に即座に追加
     const userMsg: Message = {
       id: crypto.randomUUID(),
       role: "user",
@@ -42,26 +49,23 @@ export const Chat = () => {
     };
 
     setMessages((prev) => [...prev, userMsg]);
-    const currentInput = inputText; // 通信用に保持
+    const currentInput = inputText;
     setInputText("");
     setIsSending(true);
 
     try {
-      // MSWの台本（/chat）に向かって通信！
-      const response = await apiClient.post("/chat", {
+      const response = await apiClient.post("/conversations", {
         message: currentInput,
       });
 
-      // AIからの返信を画面に追加
       const aiMsg: Message = {
-        id: response.data.id,
+        id: crypto.randomUUID(), // IDがない場合の保険
         role: "assistant",
         content: response.data.message,
       };
       setMessages((prev) => [...prev, aiMsg]);
     } catch (error) {
       console.error("チャット通信エラー:", error);
-      // 理香さんが作ったインターセプターにより、401なら勝手にログイン画面に飛びます
     } finally {
       setIsSending(false);
     }
@@ -69,19 +73,16 @@ export const Chat = () => {
 
   return (
     <div className="flex flex-col h-full bg-blue-50">
-      {/* ヘッダー */}
       <header className="bg-white p-4 pt-[calc(1rem+env(safe-area-inset-top))] shadow-sm border-b-2 border-blue-100 flex justify-between items-center z-10 flex-shrink-0">
         <h1 className="text-xl font-black text-blue-500">AI Partner 💬</h1>
-        <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-bold">
+        <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-bold transition-all">
           {isSending ? "入力中..." : "オンライン"}
         </span>
       </header>
 
-      {/* チャット履歴エリア */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6 overscroll-contain">
         <div className="sm:max-w-3xl sm:mx-auto w-full space-y-6">
           {isLoading ? (
-            // Skeleton UI
             <div className="space-y-6 animate-pulse">
               <div className="flex justify-start">
                 <div className="bg-blue-100 h-16 w-3/4 max-w-[85%] rounded-3xl rounded-tl-none"></div>
@@ -100,23 +101,25 @@ export const Chat = () => {
                       : "bg-white text-gray-700 rounded-tl-none border-2 border-transparent"
                   }`}
                 >
-                  <p>{msg.content}</p>
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
                 </div>
               </div>
             ))
           )}
-          {/* AIの返信待ちドット表示などをここに入れるとさらに可愛くなります */}
+
           {isSending && (
-            <div className="flex justify-start animate-bounce">
-              <div className="bg-white p-3 rounded-2xl shadow-sm text-blue-400 font-bold">
+            <div className="flex justify-start">
+              <div className="bg-white p-3 rounded-2xl shadow-sm text-blue-400 font-bold animate-bounce">
                 ...
               </div>
             </div>
           )}
+
+          {/* ✨ ここに「目印」を配置 */}
+          <div ref={scrollEndRef} />
         </div>
       </div>
 
-      {/* 入力エリア */}
       <div className="p-4 bg-white border-t-2 border-blue-100 flex-shrink-0">
         <div className="flex gap-2 sm:max-w-3xl sm:mx-auto">
           <input

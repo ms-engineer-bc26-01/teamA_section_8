@@ -7,6 +7,7 @@ import { Button } from "../components/common/Button";
 import { Input } from "../components/common/Input";
 import { Card } from "../components/common/Card";
 import { useAuthStore } from "../store/authStore";
+import apiClient from "../api/apiClient"; // ✨ 1. apiClient をインポート
 
 // 1. Zodで入力ルールの定義（スキーマ）
 const loginSchema = z.object({
@@ -17,7 +18,6 @@ const loginSchema = z.object({
   password: z.string().min(8, "パスワードは8文字以上で入力してください"),
 });
 
-// スキーマからTypeScriptの型を自動生成
 type LoginFormInputs = z.infer<typeof loginSchema>;
 
 export const Login: React.FC = () => {
@@ -36,22 +36,24 @@ export const Login: React.FC = () => {
   // 3. 送信時の処理
   const onSubmit = async (data: LoginFormInputs) => {
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      // ✨ 2. fetch の代わりに apiClient を使う
+      const response = await apiClient.post("/auth/login", data);
 
-      if (!response.ok) throw new Error();
+      // ✨ 3. バックエンドからのデータを受け取る
+      // （仕様書によると、トークンはCookieで自動保存されるため、ここではユーザー情報だけ受け取ります）
+      const user = response.data.user;
 
-      const result = await response.json();
+      // ストアにユーザー情報を保存して画面遷移
+      // ※もし useAuthStore が login(token, user) の形を必須としている場合は、
+      // 一旦ダミー文字を入れて login("cookie-auth", user) としてください。
+      login(response.data.token, user);
 
-      // MSW から返ってきたトークンとユーザー情報をストアに保存
-      login(result.token, result.user);
       navigate("/home");
     } catch (error) {
       console.error("Login failed:", error);
-      alert("ログインに失敗しました。");
+      alert(
+        "ログインに失敗しました。メールアドレスかパスワードを確認してください。",
+      );
     }
   };
 
@@ -76,7 +78,6 @@ export const Login: React.FC = () => {
               placeholder="hello@example.com"
               {...register("email")}
             />
-            {/* エラー表示（DoD要件） */}
             {errors.email && (
               <p className="text-rose-500 text-xs mt-1 ml-1">
                 {errors.email.message}
@@ -94,7 +95,6 @@ export const Login: React.FC = () => {
               placeholder="••••••••"
               {...register("password")}
             />
-            {/* エラー表示（DoD要件） */}
             {errors.password && (
               <p className="text-rose-500 text-xs mt-1 ml-1">
                 {errors.password.message}

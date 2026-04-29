@@ -7,8 +7,10 @@ import { Button } from "../components/common/Button";
 import { Input } from "../components/common/Input";
 import { Card } from "../components/common/Card";
 import { useAuthStore } from "../store/authStore";
+// 1. apiClient をインポート
+import apiClient from "../api/apiClient";
 
-// 1. Zodで入力ルールの定義（パスワード一致チェック付き）
+// Zodで入力ルールの定義
 const registerSchema = z
   .object({
     displayName: z
@@ -24,7 +26,7 @@ const registerSchema = z
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "パスワードが一致しません",
-    path: ["confirmPassword"], // エラーを表示するフィールドを指定
+    path: ["confirmPassword"],
   });
 
 type RegisterFormInputs = z.infer<typeof registerSchema>;
@@ -41,26 +43,29 @@ export const Register: React.FC = () => {
     resolver: zodResolver(registerSchema),
   });
 
+  // 2. 送信処理（apiClient を使用）
   const onSubmit = async (data: RegisterFormInputs) => {
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: data.email,
-          password: data.password,
-          displayName: data.displayName,
-        }),
+      // fetch ではなく apiClient.post を使用
+      // baseURL が http://localhost:8000/api なので、パスは "/auth/register" でOK
+      const response = await apiClient.post("/auth/register", {
+        email: data.email,
+        password: data.password,
+        displayName: data.displayName,
       });
 
-      if (!response.ok) throw new Error();
+      // Axios の場合、JSONの解析は不要で response.data に中身が入っています
+      const result = response.data;
 
-      const result = await response.json();
+      // 認証情報をストアに保存して遷移
       login(result.token, result.user);
       navigate("/home");
     } catch (error) {
       console.error("Registration failed:", error);
-      alert("登録に失敗しました。");
+      // エラーメッセージの出し方は後で調整できますが、まずはアラートで確認
+      alert(
+        "登録に失敗しました。メールアドレスが既に使われている可能性があります。",
+      );
     }
   };
 
