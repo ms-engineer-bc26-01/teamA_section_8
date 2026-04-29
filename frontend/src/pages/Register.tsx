@@ -14,12 +14,12 @@ const registerSchema = z
     displayName: z
       .string()
       .min(1, "お名前を入力してください")
-      .max(50, "50文字以内で入力してください"),
+      .max(100, "100文字以内で入力してください"),
     email: z
       .string()
       .min(1, "メールアドレスを入力してください")
       .email("正しい形式で入力してください"),
-    password: z.string().min(6, "パスワードは6文字以上で入力してください"),
+    password: z.string().min(8, "パスワードは8文字以上で入力してください"),
     confirmPassword: z.string().min(1, "確認用パスワードを入力してください"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -42,7 +42,6 @@ export const Register: React.FC = () => {
   });
 
   const onSubmit = (data: RegisterFormInputs) => {
-    console.log("送信データ:", data);
     // ダミー登録成功＆ログイン状態にしてホームへ
     login("dummy-jwt-token", {
       id: "1",
@@ -99,7 +98,7 @@ export const Register: React.FC = () => {
 
           <div>
             <label className="block text-sm font-medium text-slate-600 mb-1 ml-1">
-              パスワード (6文字以上)
+              パスワード (8文字以上)
             </label>
             <Input
               type="password"
