@@ -36,7 +36,6 @@ export const Login: React.FC = () => {
   // 3. 送信時の処理
   const onSubmit = (data: LoginFormInputs) => {
     // ※本来はここでAPIを叩きますが、今はダミーでログインを成功させます
-    console.log("送信データ:", data);
 
     // ストアにログイン状態をセットしてホームへ遷移
     login("dummy-jwt-token", {
