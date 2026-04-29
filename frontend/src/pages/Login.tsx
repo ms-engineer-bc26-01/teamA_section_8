@@ -34,33 +34,37 @@ export const Login: React.FC = () => {
     resolver: zodResolver(loginSchema),
   });
 
-  // 4. 送信時の処理を非同期(async)に変更
+  // 3. 送信時の処理
   const onSubmit = async (data: LoginFormInputs) => {
-    setErrorMessage(null); // 処理開始時にエラーをリセット
+    // 送信前に前回のメッセージをリセットしておくと親切です
+    setErrorMessage(null);
 
     try {
-      // 本来はここで API を呼び出します
-      // 例: const response = await fetch('/api/auth/login', { ... });
-      // if (!response.ok) throw response; // 失敗時は response を throw
-
-      // 現状はモックログイン処理
-      login("dummy-jwt-token", {
-        id: "1",
-        displayName: "ゲスト",
-        email: data.email,
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
       });
+
+      // 変更点１：空のエラーではなく、レスポンス自体を投げる
+      if (!response.ok) throw response;
+
+      const result = await response.json();
+
+      login(result.token, result.user);
       navigate("/home");
     } catch (error) {
-      // 5. 指摘に基づいたエラー情報の抽出
+      console.error("Login failed:", error);
+
+      // 変更点２：アラートを消して、レスポンスから詳細を取り出しステートにセットする
       if (error instanceof Response) {
         const errorData = await error.json().catch(() => null);
         setErrorMessage(
           errorData?.error?.message ?? "ログインに失敗しました。",
         );
       } else {
-        setErrorMessage(
-          "通信エラーが発生しました。時間を置いて再度お試しください。",
-        );
+        // ネットワークが繋がっていない時などの予備のメッセージ
+        setErrorMessage("通信エラーが発生しました。");
       }
     }
   };
