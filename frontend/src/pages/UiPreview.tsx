@@ -9,7 +9,7 @@ const UiPreview: React.FC = () => {
   const { user, isAuthenticated, login, logout } = useAuthStore();
 
   const handleTestLogin = () => {
-    login("dummy-jwt-token", {
+    login({
       id: "1",
       displayName: "テストユーザー",
       email: "test@example.com",
