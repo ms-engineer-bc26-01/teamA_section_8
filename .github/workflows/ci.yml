@@ -55,8 +55,6 @@ jobs:
 
       - name: Lint
         run: npm run lint
-        env:
-          ESLINT_USE_FLAT_CONFIG: "false"
 
       - name: Type check (tsc)
         run: npx tsc --noEmit
