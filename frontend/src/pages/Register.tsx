@@ -18,11 +18,7 @@ const registerSchema = z
     email: z
       .string()
       .min(1, "メールアドレスを入力してください")
-<<<<<<< HEAD
-      .pipe(z.email("正しい形式で入力してください")),
-=======
       .email("正しい形式で入力してください"),
->>>>>>> 4501d68 (指摘事項の修正)
     password: z.string().min(8, "パスワードは8文字以上で入力してください"),
     confirmPassword: z.string().min(1, "確認用パスワードを入力してください"),
   })
@@ -115,11 +111,7 @@ export const Register: React.FC = () => {
 
           <div>
             <label className="block text-sm font-medium text-slate-600 mb-1 ml-1">
-<<<<<<< HEAD
               パスワード (8文字以上)
-=======
-              パスワード (8字以上)
->>>>>>> 4501d68 (指摘事項の修正)
             </label>
             <Input
               type="password"
