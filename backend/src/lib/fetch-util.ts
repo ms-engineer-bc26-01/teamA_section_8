@@ -52,7 +52,7 @@ export async function fetchExternal<T>(
       const rawData: unknown = await response.json();
       const data = mapToData(rawData);
       return { ok: true, data, source };
-    } catch (error) {
+    } catch {
       clearTimeout(timeoutId);
       // タイムアウト or ネットワークエラー → 次のリトライへ
       continue;
