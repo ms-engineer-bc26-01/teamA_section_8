@@ -1,7 +1,7 @@
 import React, { useState } from "react"; // 1. useState を追加
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { z } from "zod";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/common/Button";
 import { Input } from "../components/common/Input";
@@ -14,7 +14,7 @@ const loginSchema = z.object({
   email: z
     .string()
     .min(1, "メールアドレスを入力してください")
-    .email("正しいメールアドレスの形式で入力してください"),
+    .email({ message: "正しいメールアドレスの形式で入力してください" }),
   password: z.string().min(8, "パスワードは8文字以上で入力してください"),
 });
 
