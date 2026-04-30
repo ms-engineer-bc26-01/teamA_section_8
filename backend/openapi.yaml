@@ -23,6 +23,8 @@ tags:
     description: 認証（Cookie ベース）
   - name: conversations
     description: 会話 — タスクカード上の「日記(diary)」に相当
+  - name: chat
+    description: チャットメッセージ（履歴取得・送信）
 
 components:
   securitySchemes:
@@ -115,6 +117,37 @@ components:
           type: string
           format: date-time
           example: '2026-04-28T10:30:00.000Z'
+
+    ChatMessage:
+      type: object
+      required:
+        - id
+        - role
+        - content
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440002
+        role:
+          type: string
+          enum:
+            - user
+            - assistant
+            - system
+        content:
+          type: string
+          example: 受け取りました: 今日は少し疲れています
+        emotionScore:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: 感情分析結果（現時点は null または将来拡張用オブジェクト）
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-04-28T10:31:00.000Z'
 
   responses:
     Unauthorized:
@@ -446,6 +479,89 @@ paths:
                 properties:
                   conversation:
                     $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /chat/{conversationId}/messages:
+    parameters:
+      - name: conversationId
+        in: path
+        required: true
+        description: 会話の UUID
+        schema:
+          type: string
+          format: uuid
+        example: 550e8400-e29b-41d4-a716-446655440001
+
+    get:
+      tags:
+        - chat
+      summary: 会話メッセージ履歴を取得
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - messages
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChatMessage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      tags:
+        - chat
+      summary: 会話にユーザーメッセージを送信してAI応答を取得
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 2000
+                  example: 今日は少し疲れています
+      responses:
+        '200':
+          description: 送信成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                properties:
+                  message:
+                    $ref: '#/components/schemas/ChatMessage'
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':

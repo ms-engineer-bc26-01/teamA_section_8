@@ -270,11 +270,7 @@ export interface UpdateConversationResponseBody {
 //   - 404 NOT_FOUND
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Sprint 2 実装予定（未実装）：チャット・感情スコア
-//
-// 以下は今後追加されるエンドポイントの型定義です。
-// MSWのモックを先行して作る際の参考にしてください。
-// 実装確定後に正式な型定義に更新します。
+// Sprint 2 実装：チャット・感情スコア
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** 感情ラベル */
@@ -290,7 +286,16 @@ export interface EmotionScore {
   categories: string[]; // 例: ["疲労", "ストレス"]
 }
 
-// ── POST /api/chat/:conversationId/message（Sprint 2 実装予定）────────────
+// ── GET /api/chat/:conversationId/messages ────────────────────────────────
+//
+// 認証: Cookie必須
+// 成功時: 200 OK
+// エラー:
+//   - 401 UNAUTHORIZED
+//   - 403 FORBIDDEN
+//   - 404 NOT_FOUND
+//
+// ── POST /api/chat/:conversationId/messages ───────────────────────────────
 //
 // ⚠️ たたき台の POST /api/chat/message に相当しますが、
 //    パスの形式が変わります（conversationIdをパスパラメータに移動）
@@ -299,22 +304,22 @@ export interface EmotionScore {
 
 export interface SendMessageRequestBody {
   content: string;           // ユーザーのメッセージ本文
-  location?: {
-    lat: number;
-    lng: number;
-  };
 }
 
-export interface AssistantMessage {
+export interface ChatMessage {
   id: string;          // UUID v4
-  role: 'assistant';
+  role: 'assistant' | 'user' | 'system';
   content: string;
   emotionScore: EmotionScore | null;
   createdAt: string;   // ISO 8601 UTC
 }
 
+export interface ListMessagesResponseBody {
+  messages: ChatMessage[];
+}
+
 export interface SendMessageResponseBody {
-  message: AssistantMessage;
+  message: ChatMessage;
   // suggestions は Sprint 3 で追加予定
 }
 

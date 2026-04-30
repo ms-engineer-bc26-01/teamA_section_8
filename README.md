@@ -110,6 +110,33 @@ binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 8. `docker compose exec backend npx prisma migrate dev --name init` で初回マイグレーション
 9. `http://localhost/` (nginx経由) と `http://localhost:3000/` (直接) の両方が開くことを確認
 
+## Sprint 2 以降の B/C 並走フロー（PR運用ルール）
+
+- Aの未実装タスクは**代理実装しない**（担当者オーナーシップを維持）
+- ただし、未レビューPRが全体進行を止める場合は、承認のうえ最小修正で緊急対応する
+
+### 緊急対応に含める条件
+
+- API契約破壊（OpenAPI/実装の不整合で依存PRが止まる）
+- 認証破壊（ログイン状態で必須APIが利用不能）
+- 必須CIジョブ失敗（backend / frontend / migrate-check）
+
+### 並走レーン
+
+- Bレーン: `/chat` UI、MSW、APIクライアント（401時ログアウト）
+- Cレーン: Web検索クライアント、RAG組み込み、出典整形
+
+### 接続ポイント（B/C共通）
+
+- OpenAPI と API型定義を単一の正とする
+- `chat` 契約（履歴取得・送信）変更時は B/C 同時合意を必須にする
+
+### PR分割とマージ可否
+
+- PRを `B-UI` / `B-MSW-API` / `C-Search` / `C-RAG-format` に分割
+- 依存が弱いPRから先行レビュー・先行マージ
+- マージ条件: CI通過 + レビュー承認
+
 ## よく聞かれる質問
 
 **Q. Alpine のほうが軽くないですか?**
