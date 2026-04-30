@@ -1,12 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
-
-const menuItems = [
-  { path: "/home", label: "ホーム", icon: "🏠" },
-  { path: "/chat", label: "チャット", icon: "💬" },
-  { path: "/trend", label: "トレンド", icon: "📈" },
-  { path: "/settings", label: "設定", icon: "⚙️" },
-];
+import { navigationItems } from "./navigationItems";
 
 export const Sidebar = () => {
   const location = useLocation();
@@ -24,7 +18,7 @@ export const Sidebar = () => {
     <aside className="hidden md:flex md:w-64 bg-white border-r border-gray-200 flex-col p-4">
       <h1 className="text-xl font-bold text-purple-700 px-2 py-4">Selfcare 🌿</h1>
       <nav className="mt-2 space-y-2">
-        {menuItems.map((item) => (
+        {navigationItems.map((item) => (
           <Link
             key={item.path}
             to={item.path}

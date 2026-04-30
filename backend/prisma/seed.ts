@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
+  // 開発/テスト用途の固定ダミーパスワード（本番用途では使用しない）
   const users = [
     {
       email: "alice@example.com",
