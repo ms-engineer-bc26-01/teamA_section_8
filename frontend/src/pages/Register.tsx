@@ -18,7 +18,7 @@ const registerSchema = z
     email: z
       .string()
       .min(1, "メールアドレスを入力してください")
-      .pipe(z.email("正しい形式で入力してください")),
+      .email("正しい形式で入力してください"),
     password: z.string().min(8, "パスワードは8文字以上で入力してください"),
     confirmPassword: z.string().min(1, "確認用パスワードを入力してください"),
   })
@@ -41,14 +41,27 @@ export const Register: React.FC = () => {
     resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = (data: RegisterFormInputs) => {
-    // ダミー登録成功＆ログイン状態にしてホームへ
-     login({
-      id: "1",
-      displayName: data.displayName,
-      email: data.email,
-    });
-    navigate("/home");
+  const onSubmit = async (data: RegisterFormInputs) => {
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          displayName: data.displayName,
+        }),
+      });
+
+      if (!response.ok) throw new Error();
+
+      const result = await response.json();
+      login(result.user);
+      navigate("/home");
+    } catch (error) {
+      console.error("Registration failed:", error);
+      alert("登録に失敗しました。");
+    }
   };
 
   return (

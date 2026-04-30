@@ -34,34 +34,24 @@ export const Login: React.FC = () => {
     resolver: zodResolver(loginSchema),
   });
 
-  // 4. 送信時の処理を非同期(async)に変更
+  // 3. 送信時の処理
   const onSubmit = async (data: LoginFormInputs) => {
-    setErrorMessage(null); // 処理開始時にエラーをリセット
-
     try {
-      // 本来はここで API を呼び出します
-      // 例: const response = await fetch('/api/auth/login', { ... });
-      // if (!response.ok) throw response; // 失敗時は response を throw
-
-      // 現状はモックログイン処理
-      login({
-        id: "1",
-         displayName: "ゲスト",
-         email: data.email,
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
       });
+
+      if (!response.ok) throw new Error();
+
+      const result = await response.json();
+
+      login(result.user);
       navigate("/home");
     } catch (error) {
-      // 5. 指摘に基づいたエラー情報の抽出
-      if (error instanceof Response) {
-        const errorData = await error.json().catch(() => null);
-        setErrorMessage(
-          errorData?.error?.message ?? "ログインに失敗しました。",
-        );
-      } else {
-        setErrorMessage(
-          "通信エラーが発生しました。時間を置いて再度お試しください。",
-        );
-      }
+      console.error("Login failed:", error);
+      alert("ログインに失敗しました。");
     }
   };
 
