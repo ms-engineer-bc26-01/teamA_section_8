@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import apiClient from "./apiClient";
+import apiClient from "../api/apiClient";
 import MockAdapter from "axios-mock-adapter";
 
 // 1. location.href の代入を監視するためのモック

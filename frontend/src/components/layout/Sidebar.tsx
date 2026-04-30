@@ -42,7 +42,7 @@ export const Sidebar: React.FC = () => {
 
           return (
             <Link // ← button から Link に変更
-              key={item.path} // ← index から path に変更（pathはユニークなはずなので）
+              key={item.path}
               to={item.path} // ← 遷移先のURLを指定
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl transition-all ${
                 isActive

@@ -1,4 +1,4 @@
-import { http, HttpResponse } from "msw";
+import { http, HttpResponse, delay } from "msw";
 
 export const handlers = [
   // ログインハンドラ
@@ -11,7 +11,7 @@ export const handlers = [
     }
 
     return HttpResponse.json({
-      token: "mock-jwt-token-s1-b-03", // DoD: token 取得
+      token: "mock-jwt-token-s1-b-03",
       user: {
         id: "user-uuid-001",
         displayName: "テスター",
@@ -34,10 +34,20 @@ export const handlers = [
         displayName: displayName,
         email: email,
       },
-      status: 200,
-      headers: {
-        "Set-Cookie": "token=mock-jwt-token; HttpOnly; Path=/",
-      },
+    });
+  }),
+
+  // チャットハンドラ
+  http.post("/api/chat", async ({ request }) => {
+    const { message } = (await request.json()) as { message: string };
+
+    await delay(1500);
+
+    return HttpResponse.json({
+      id: "chat-uuid-001",
+      sender: "ai",
+      message: `「${message}」ですね。今日もお疲れ様です！ゆっくり休んでくださいね。`,
+      createdAt: new Date().toISOString(),
     });
   }),
 
