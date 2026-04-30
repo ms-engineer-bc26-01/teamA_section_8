@@ -1,4 +1,4 @@
-import React, { useState } from "react"; // 1. useState を追加
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -6,7 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/common/Button";
 import { Input } from "../components/common/Input";
 import { Card } from "../components/common/Card";
-import { Toast } from "../components/common/Toast"; // 2. Toast をインポート
+import { Toast } from "../components/common/Toast";
 import { useAuthStore } from "../store/authStore";
 
 const loginSchema = z.object({
@@ -19,11 +19,20 @@ const loginSchema = z.object({
 
 type LoginFormInputs = z.infer<typeof loginSchema>;
 
+type AuthApiResponse = {
+  user?: {
+    id: string;
+    displayName: string;
+    email: string;
+  };
+  error?: {
+    message?: string;
+  };
+};
+
 export const Login: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuthStore();
-
-  // 3. エラーメッセージの状態を定義
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const {
@@ -34,40 +43,34 @@ export const Login: React.FC = () => {
     resolver: zodResolver(loginSchema),
   });
 
-  // 4. 送信時の処理を非同期(async)に変更
   const onSubmit = async (data: LoginFormInputs) => {
-    setErrorMessage(null); // 処理開始時にエラーをリセット
+    setErrorMessage(null);
 
     try {
-      // 本来はここで API を呼び出します
-      // 例: const response = await fetch('/api/auth/login', { ... });
-      // if (!response.ok) throw response; // 失敗時は response を throw
-
-      // 現状はモックログイン処理
-      login({
-        id: "1",
-         displayName: "ゲスト",
-         email: data.email,
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
       });
-      navigate("/home");
-    } catch (error) {
-      // 5. 指摘に基づいたエラー情報の抽出
-      if (error instanceof Response) {
-        const errorData = await error.json().catch(() => null);
-        setErrorMessage(
-          errorData?.error?.message ?? "ログインに失敗しました。",
-        );
-      } else {
-        setErrorMessage(
-          "通信エラーが発生しました。時間を置いて再度お試しください。",
-        );
+
+      const result = (await response.json()) as AuthApiResponse;
+
+      if (!response.ok || !result.user) {
+        setErrorMessage(result.error?.message ?? "ログインに失敗しました。");
+        return;
       }
+
+      login(result.user);
+      navigate("/home");
+    } catch {
+      setErrorMessage(
+        "通信エラーが発生しました。時間を置いて再度お試しください。",
+      );
     }
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
-      {/* 6. エラーがある場合のみ Toast を表示 */}
       {errorMessage && (
         <Toast
           message={errorMessage}

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -6,9 +6,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/common/Button";
 import { Input } from "../components/common/Input";
 import { Card } from "../components/common/Card";
+import { Toast } from "../components/common/Toast";
 import { useAuthStore } from "../store/authStore";
 
-// 1. Zodで入力ルールの定義（パスワード一致チェック付き）
 const registerSchema = z
   .object({
     displayName: z
@@ -24,14 +24,26 @@ const registerSchema = z
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "パスワードが一致しません",
-    path: ["confirmPassword"], // エラーを表示するフィールドを指定
+    path: ["confirmPassword"],
   });
 
 type RegisterFormInputs = z.infer<typeof registerSchema>;
 
+type AuthApiResponse = {
+  user?: {
+    id: string;
+    displayName: string;
+    email: string;
+  };
+  error?: {
+    message?: string;
+  };
+};
+
 export const Register: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuthStore();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const {
     register,
@@ -41,18 +53,46 @@ export const Register: React.FC = () => {
     resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = (data: RegisterFormInputs) => {
-    // ダミー登録成功＆ログイン状態にしてホームへ
-     login({
-      id: "1",
-      displayName: data.displayName,
-      email: data.email,
-    });
-    navigate("/home");
+  const onSubmit = async (data: RegisterFormInputs) => {
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          displayName: data.displayName,
+        }),
+      });
+
+      const result = (await response.json()) as AuthApiResponse;
+
+      if (!response.ok || !result.user) {
+        setErrorMessage(result.error?.message ?? "登録に失敗しました。");
+        return;
+      }
+
+      login(result.user);
+      navigate("/home");
+    } catch {
+      setErrorMessage(
+        "通信エラーが発生しました。時間を置いて再度お試しください。",
+      );
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
+      {errorMessage && (
+        <Toast
+          message={errorMessage}
+          type="error"
+          onClose={() => setErrorMessage(null)}
+        />
+      )}
+
       <Card className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-purple-700 mb-2">
@@ -134,7 +174,7 @@ export const Register: React.FC = () => {
             className="w-full mt-2"
             disabled={isSubmitting}
           >
-            はじめる
+            {isSubmitting ? "処理中..." : "はじめる"}
           </Button>
         </form>
 
