@@ -47,8 +47,7 @@ export const Login: React.FC = () => {
 
       const result = await response.json();
 
-      // MSW から返ってきたトークンとユーザー情報をストアに保存
-      login(result.token);
+      login(result.user);
       navigate("/home");
     } catch (error) {
       console.error("Login failed:", error);

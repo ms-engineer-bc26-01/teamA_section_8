@@ -30,7 +30,6 @@ const logoutSpy = vi.fn();
 vi.mock("../store/authStore", () => ({
   useAuthStore: {
     getState: () => ({
-      token: "fake-token",
       logout: logoutSpy,
     }),
   },
@@ -41,12 +40,6 @@ describe("apiClient 認証インターセプターのテスト", () => {
     mock.reset();
     locationMock.href = "http://localhost/";
     vi.clearAllMocks();
-  });
-
-  it("リクエスト時に Authorization ヘッダーに Bearer トークンが付与されていること", async () => {
-    mock.onGet("/test").reply(200, { success: true });
-    const response = await apiClient.get("/test");
-    expect(response.config.headers?.Authorization).toBe("Bearer fake-token");
   });
 
   it("401エラーが返ってきた時、ログアウトを実行し /login へ遷移すること", async () => {

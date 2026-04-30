@@ -56,7 +56,7 @@ export const Register: React.FC = () => {
       if (!response.ok) throw new Error();
 
       const result = await response.json();
-      login(result.token);
+      login(result.user);
       navigate("/home");
     } catch (error) {
       console.error("Registration failed:", error);
