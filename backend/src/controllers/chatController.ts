@@ -1,4 +1,5 @@
 import { NextFunction, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import prisma from '../lib/prisma';
 import { AuthRequest } from '../middleware/authenticate';
@@ -66,7 +67,7 @@ export async function postChatMessage(
         conversationId,
         role: 'user',
         content: body.data.content,
-        emotionScore: null,
+        emotionScore: Prisma.JsonNull,
       },
     });
 
@@ -82,7 +83,11 @@ export async function postChatMessage(
         conversationId,
         role: 'assistant' as const,
         content: generatedContent,
-        emotionScore: generatedEmotion,
+        emotionScore: {
+          label: generatedEmotion.label,
+          score: generatedEmotion.score,
+          categories: generatedEmotion.categories,
+        } as Prisma.InputJsonValue,
       },
     });
 
@@ -123,10 +128,7 @@ function mapMessageToResponse(message: {
   emotionScore: unknown;
 }): ChatMessageResponse {
   const rawEmotion = message.emotionScore as Partial<EmotionScore> | null;
-  const emotionScore = rawEmotion
-    && typeof rawEmotion.label === 'string'
-    && typeof rawEmotion.score === 'number'
-    && Array.isArray(rawEmotion.categories)
+  const emotionScore = isValidEmotionScore(rawEmotion)
     ? {
       label: rawEmotion.label as EmotionScore['label'],
       score: rawEmotion.score,
@@ -142,4 +144,21 @@ function mapMessageToResponse(message: {
     createdAt: message.createdAt.toISOString(),
     sources: [],
   };
+}
+
+function isValidEmotionScore(rawEmotion: Partial<EmotionScore> | null): rawEmotion is EmotionScore {
+  const validLabels: ReadonlySet<EmotionScore['label']> = new Set([
+    'joy',
+    'sadness',
+    'anger',
+    'fear',
+    'neutral',
+  ]);
+  return Boolean(
+    rawEmotion
+    && typeof rawEmotion.label === 'string'
+    && validLabels.has(rawEmotion.label as EmotionScore['label'])
+    && typeof rawEmotion.score === 'number'
+    && Array.isArray(rawEmotion.categories),
+  );
 }

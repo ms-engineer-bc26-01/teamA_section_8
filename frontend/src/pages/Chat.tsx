@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type KeyboardEventHandler } from "react";
 import { createChat, getChatHistory, sendChatMessage } from "../api/chat";
 import { ApiClientError } from "../api/client";
-import { ChatMessage } from "../types/api";
+import type { ChatMessage } from "../types/api";
 
 export const Chat = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -10,6 +10,13 @@ export const Chat = () => {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const makeLocalId = () => {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+    return `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -45,7 +52,7 @@ export const Chat = () => {
     setInput("");
     setErrorMessage(null);
     const localUserMessage: ChatMessage = {
-      id: `local-user-${Date.now()}`,
+      id: makeLocalId(),
       role: "user",
       content,
       emotionScore: null,
@@ -65,7 +72,7 @@ export const Chat = () => {
   };
 
   const handleInputEnter: KeyboardEventHandler<HTMLInputElement> = (event) => {
-    if (event.key === "Enter") {
+    if (event.key === "Enter" && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {
       event.preventDefault();
       void handleSend();
     }

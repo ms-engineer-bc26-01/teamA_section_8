@@ -1,5 +1,5 @@
 import { apiFetch } from "./client";
-import { ChatMessage, ConversationSummary } from "../types/api";
+import type { ChatMessage, ConversationSummary } from "../types/api";
 
 interface CreateChatResponse {
   conversation: ConversationSummary;
