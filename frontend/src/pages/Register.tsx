@@ -20,7 +20,7 @@ const registerSchema = z
     email: z
       .string()
       .min(1, "メールアドレスを入力してください")
-      .email("正しい形式で入力してください"),
+      .email({ message: "正しい形式で入力してください" }),
     password: z.string().min(8, "パスワードは8文字以上で入力してください"),
     confirmPassword: z.string().min(1, "確認用パスワードを入力してください"),
   })
