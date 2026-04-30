@@ -1,26 +1,78 @@
-import { useState, useEffect } from "react";
-
-const DUMMY_MESSAGES = [
-  { id: "1", role: "assistant", content: "今日もお疲れ様です！今の気分は？" },
-  { id: "2", role: "user", content: "ちょっと疲れ気味かも…。" },
-];
+import { useEffect, useMemo, useState, type KeyboardEventHandler } from "react";
+import { createChat, getChatHistory, sendChatMessage } from "../api/chat";
+import { ApiClientError } from "../api/client";
+import { ChatMessage } from "../types/api";
 
 export const Chat = () => {
-  const [messages, setMessages] = useState<typeof DUMMY_MESSAGES>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [input, setInput] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // 初回ロードのシミュレーション（0.5秒後に表示）
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setMessages(DUMMY_MESSAGES);
-      setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    let mounted = true;
+    const boot = async () => {
+      try {
+        const conversation = await createChat();
+        if (!mounted) return;
+        setConversationId(conversation.id);
+        const history = await getChatHistory(conversation.id);
+        if (!mounted) return;
+        setMessages(history);
+      } catch (error) {
+        if (!mounted) return;
+        setErrorMessage(error instanceof ApiClientError ? error.message : "チャットの読み込みに失敗しました。");
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+    void boot();
+    return () => {
+      mounted = false;
+    };
   }, []);
+
+  const canSend = useMemo(
+    () => !isSending && Boolean(input.trim()) && Boolean(conversationId),
+    [conversationId, input, isSending],
+  );
+
+  const handleSend = async () => {
+    const content = input.trim();
+    if (!content || !conversationId) return;
+    setInput("");
+    setErrorMessage(null);
+    const localUserMessage: ChatMessage = {
+      id: `local-user-${Date.now()}`,
+      role: "user",
+      content,
+      emotionScore: null,
+      createdAt: new Date().toISOString(),
+      sources: [],
+    };
+    setMessages((prev) => [...prev, localUserMessage]);
+    setIsSending(true);
+    try {
+      const assistant = await sendChatMessage(conversationId, content);
+      setMessages((prev) => [...prev, assistant]);
+    } catch (error) {
+      setErrorMessage(error instanceof ApiClientError ? error.message : "メッセージ送信に失敗しました。");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleInputEnter: KeyboardEventHandler<HTMLInputElement> = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void handleSend();
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-blue-50">
-      {/* ヘッダー（上部セーフエリア考慮） */}
       <header className="bg-white p-4 pt-[calc(1rem+env(safe-area-inset-top))] shadow-sm border-b-2 border-blue-100 flex justify-between items-center z-10 flex-shrink-0">
         <h1 className="text-xl font-black text-blue-500">AI Partner 💬</h1>
         <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-bold">
@@ -28,10 +80,13 @@ export const Chat = () => {
         </span>
       </header>
 
-      {/* チャット履歴エリア */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6 overscroll-contain">
         <div className="sm:max-w-3xl sm:mx-auto w-full space-y-6">
-          {/* ローディング中は Skeleton UI を表示 */}
+          {errorMessage && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 text-red-700 p-3 text-sm font-semibold">
+              {errorMessage}
+            </div>
+          )}
           {isLoading ? (
             <div className="space-y-6 animate-pulse">
               <div className="flex justify-start">
@@ -56,6 +111,22 @@ export const Chat = () => {
                   }`}
                 >
                   <p>{msg.content}</p>
+                  {msg.role === "assistant" && msg.sources.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {msg.sources.map((source) => (
+                        <a
+                          key={source.id}
+                          href={source.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block rounded-xl border border-blue-200 bg-blue-50 p-2 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                        >
+                          <p className="font-bold">{source.title}</p>
+                          <p className="line-clamp-2">{source.snippet}</p>
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))
@@ -63,18 +134,23 @@ export const Chat = () => {
         </div>
       </div>
 
-      {/* 入力エリア（キーボード展開時に隠れないよう flex-shrink-0 を指定） */}
       <div className="p-4 bg-white border-t-2 border-blue-100 flex-shrink-0">
         <div className="flex gap-2 sm:max-w-3xl sm:mx-auto">
-          {/* iOSズーム防止のため text-base (16px) を指定、タップ領域 min-h-[44px] */}
           <input
             type="text"
             placeholder="メッセージを入力..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleInputEnter}
             className="flex-1 p-4 min-h-[44px] text-base rounded-2xl bg-gray-100 outline-none focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all font-bold text-gray-700"
           />
-          {/* 送信ボタン タップ領域 min-h-[44px], min-w-[44px] */}
-          <button className="min-h-[44px] min-w-[64px] bg-blue-500 hover:bg-blue-600 text-white px-6 rounded-2xl font-black shadow-md transition-transform active:scale-95">
-            送信
+          <button
+            type="button"
+            onClick={() => void handleSend()}
+            disabled={!canSend}
+            className="min-h-[44px] min-w-[64px] bg-blue-500 disabled:bg-blue-300 hover:bg-blue-600 text-white px-6 rounded-2xl font-black shadow-md transition-transform active:scale-95"
+          >
+            {isSending ? "送信中" : "送信"}
           </button>
         </div>
       </div>

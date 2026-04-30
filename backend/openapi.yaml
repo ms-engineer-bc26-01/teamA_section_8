@@ -455,6 +455,209 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /chat:
+    post:
+      tags:
+        - conversations
+      summary: 新規チャット会話作成
+      security:
+        - cookieAuth: []
+      responses:
+        '201':
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - conversation
+                properties:
+                  conversation:
+                    $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /chat/{id}/message:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags:
+        - conversations
+      summary: チャットメッセージ送信
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 2000
+                location:
+                  type: object
+                  properties:
+                    lat:
+                      type: number
+                    lng:
+                      type: number
+      responses:
+        '200':
+          description: 送信成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                properties:
+                  message:
+                    type: object
+                    required: [id, role, content, emotionScore, createdAt, sources]
+                    properties:
+                      id:
+                        type: string
+                      role:
+                        type: string
+                        enum: [user, assistant, system]
+                      content:
+                        type: string
+                      emotionScore:
+                        nullable: true
+                        type: object
+                        required: [label, score, categories]
+                        properties:
+                          label:
+                            type: string
+                            enum: [joy, sadness, anger, fear, neutral]
+                          score:
+                            type: number
+                          categories:
+                            type: array
+                            items:
+                              type: string
+                      createdAt:
+                        type: string
+                        format: date-time
+                      sources:
+                        type: array
+                        items:
+                          type: object
+                          required: [id, title, url, snippet, provider]
+                          properties:
+                            id:
+                              type: string
+                            title:
+                              type: string
+                            url:
+                              type: string
+                              format: uri
+                            snippet:
+                              type: string
+                            provider:
+                              type: string
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /chat/{id}/history:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags:
+        - conversations
+      summary: チャット履歴取得
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [messages]
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, role, content, emotionScore, createdAt, sources]
+                      properties:
+                        id:
+                          type: string
+                        role:
+                          type: string
+                          enum: [user, assistant, system]
+                        content:
+                          type: string
+                        emotionScore:
+                          nullable: true
+                          type: object
+                          required: [label, score, categories]
+                          properties:
+                            label:
+                              type: string
+                              enum: [joy, sadness, anger, fear, neutral]
+                            score:
+                              type: number
+                            categories:
+                              type: array
+                              items:
+                                type: string
+                        createdAt:
+                          type: string
+                          format: date-time
+                        sources:
+                          type: array
+                          items:
+                            type: object
+                            required: [id, title, url, snippet, provider]
+                            properties:
+                              id:
+                                type: string
+                              title:
+                                type: string
+                              url:
+                                type: string
+                                format: uri
+                              snippet:
+                                type: string
+                              provider:
+                                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
     delete:
       tags:
         - conversations

@@ -270,11 +270,7 @@ export interface UpdateConversationResponseBody {
 //   - 404 NOT_FOUND
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Sprint 2 実装予定（未実装）：チャット・感情スコア
-//
-// 以下は今後追加されるエンドポイントの型定義です。
-// MSWのモックを先行して作る際の参考にしてください。
-// 実装確定後に正式な型定義に更新します。
+// Sprint 2 実装済み：チャット・感情スコア
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** 感情ラベル */
@@ -290,12 +286,30 @@ export interface EmotionScore {
   categories: string[]; // 例: ["疲労", "ストレス"]
 }
 
-// ── POST /api/chat/:conversationId/message（Sprint 2 実装予定）────────────
-//
-// ⚠️ たたき台の POST /api/chat/message に相当しますが、
-//    パスの形式が変わります（conversationIdをパスパラメータに移動）
-//
-// Sprint 1では /api/conversations で会話セッションを作成してからこちらを呼ぶ設計
+export interface ChatSource {
+  id: string;
+  title: string;
+  url: string;
+  snippet: string;
+  provider: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  emotionScore: EmotionScore | null;
+  createdAt: string;
+  sources: ChatSource[];
+}
+
+// ── POST /api/chat ─────────────────────────────────────────────────────────
+// 会話作成（Bodyなし）
+export interface CreateChatResponseBody {
+  conversation: Conversation;
+}
+
+// ── POST /api/chat/:id/message ─────────────────────────────────────────────
 
 export interface SendMessageRequestBody {
   content: string;           // ユーザーのメッセージ本文
@@ -314,8 +328,12 @@ export interface AssistantMessage {
 }
 
 export interface SendMessageResponseBody {
-  message: AssistantMessage;
-  // suggestions は Sprint 3 で追加予定
+  message: ChatMessage;
+}
+
+// ── GET /api/chat/:id/history ──────────────────────────────────────────────
+export interface ChatHistoryResponseBody {
+  messages: ChatMessage[];
 }
 
 // ── GET /api/emotions/trend（Sprint 2 実装予定）──────────────────────────
