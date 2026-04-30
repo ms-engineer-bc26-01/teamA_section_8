@@ -3,9 +3,30 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+const SAFE_HOSTS = new Set(["localhost", "127.0.0.1", "db"]);
+
+function isSafeDatabaseTarget(databaseUrl: string | undefined): boolean {
+  if (!databaseUrl) return false;
+
+  try {
+    const { hostname } = new URL(databaseUrl);
+    return (
+      SAFE_HOSTS.has(hostname) ||
+      hostname.endsWith(".local") ||
+      hostname.endsWith(".test")
+    );
+  } catch {
+    return false;
+  }
+}
+
 async function main() {
   if (process.env.NODE_ENV === "production") {
-    throw new Error("Seed script must not run in production");
+    throw new Error("Seed script must not run in production mode");
+  }
+
+  if (!isSafeDatabaseTarget(process.env.DATABASE_URL)) {
+    throw new Error("Seed script is blocked for non-local database targets");
   }
 
   // 開発/テスト用途の固定ダミーパスワード（本番用途では使用しない）
