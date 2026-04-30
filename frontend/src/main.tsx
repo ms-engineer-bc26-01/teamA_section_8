@@ -4,32 +4,24 @@ import App from "./App.tsx";
 import "./styles/index.css";
 
 /**
- * MSWの有効化を行う関数
- * 定義を呼び出しより前に書くことで、エラーを防ぎます。
+ * MSWの有効化を行う関数（定義は残しておいてOK！）
  */
-async function enableMocking() {
-  // ✅ import() をブロック内に収める（Rollup DCE に優しい）
-  if (import.meta.env.DEV) {
-    const { worker } = await import("./mocks/browser");
-    return worker.start({ onUnhandledRequest: "bypass" });
-  }
+// async function enableMocking() {
+//   if (import.meta.env.DEV) {
+//     const { worker } = await import("./mocks/browser");
+//     return worker.start({ onUnhandledRequest: "bypass" });
+//   }
+// }
+
+// ✅ MSWを起動せずに、直接アプリをレンダリングします
+const container = document.getElementById("root");
+if (container) {
+  createRoot(container).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
 }
 
-enableMocking()
-  .then(() => {
-    const container = document.getElementById("root");
-    if (container) {
-      // ✅ null チェック維持
-      createRoot(container).render(
-        <StrictMode>
-          {" "}
-          {/* ✅ StrictMode 維持 */}
-          <App />
-        </StrictMode>,
-      );
-    }
-  })
-  .catch((err) => {
-    // ✅ エラーハンドリング維持
-    console.error("MSWの起動に失敗しました:", err);
-  });
+// もし将来またMSWを使いたくなったら、ここを
+// enableMocking().then(() => { ... }) 形式に戻せばOK！
