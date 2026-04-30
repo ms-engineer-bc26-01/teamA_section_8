@@ -83,6 +83,5 @@ model EmotionLog {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, logDate]) // 1ユーザー1日1レコード
-  @@index([userId, logDate])
   @@map("emotion_logs")
 }
