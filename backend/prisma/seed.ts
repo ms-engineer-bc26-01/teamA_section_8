@@ -4,6 +4,10 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Seed script must not run in production");
+  }
+
   // 開発/テスト用途の固定ダミーパスワード（本番用途では使用しない）
   const users = [
     {
