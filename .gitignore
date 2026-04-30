@@ -48,3 +48,6 @@ logs/
 
 # ===== Docker =====
 # docker volume の中身は自動で除外される
+
+# ===== Vite cache =====
+frontend/.vite/
