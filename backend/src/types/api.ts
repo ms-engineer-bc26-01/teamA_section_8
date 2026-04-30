@@ -318,6 +318,41 @@ export interface SendMessageResponseBody {
   // suggestions は Sprint 3 で追加予定
 }
 
+// ── POST /api/chat ───────────────────────────────────────────────────────────
+//
+// 認証: Cookie必須
+// リクエストBody: なし
+// 成功時: 201 Created — 会話セッション作成 + system prompt 挿入
+// エラー:
+//   - 401 UNAUTHORIZED
+
+export interface CreateChatResponseBody {
+  conversation: Conversation;
+}
+
+// ── GET /api/chat/:conversationId/history ────────────────────────────────────
+//
+// 認証: Cookie必須
+// クエリパラメータ:
+//   limit: 取得件数 1〜100、デフォルト50
+// 成功時: 200 OK
+// エラー:
+//   - 401 UNAUTHORIZED
+//   - 403 FORBIDDEN（他ユーザーの会話）
+//   - 404 NOT_FOUND
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  emotionScore: EmotionScore | null;
+  createdAt: string; // ISO 8601 UTC
+}
+
+export interface GetChatHistoryResponseBody {
+  messages: ChatMessage[];
+}
+
 // ── GET /api/emotions/trend（Sprint 2 実装予定）──────────────────────────
 //
 // たたき台とほぼ同じ仕様です
