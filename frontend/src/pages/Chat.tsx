@@ -3,6 +3,16 @@ import { createChat, getChatHistory, sendChatMessage } from "../api/chat";
 import { ApiClientError } from "../api/client";
 import type { ChatMessage } from "../types/api";
 
+let localMessageCounter = 0;
+
+const createLocalMessageId = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  localMessageCounter += 1;
+  return `local-${Date.now()}-${localMessageCounter}`;
+};
+
 export const Chat = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -10,13 +20,6 @@ export const Chat = () => {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const makeLocalId = () => {
-    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-      return crypto.randomUUID();
-    }
-    return `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  };
 
   useEffect(() => {
     let mounted = true;
@@ -52,7 +55,7 @@ export const Chat = () => {
     setInput("");
     setErrorMessage(null);
     const localUserMessage: ChatMessage = {
-      id: makeLocalId(),
+      id: createLocalMessageId(),
       role: "user",
       content,
       emotionScore: null,

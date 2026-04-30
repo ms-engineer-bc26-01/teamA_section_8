@@ -109,4 +109,24 @@ describe('GET /api/chat/:id/history', () => {
     expect(res.status).toBe(200);
     expect(res.body.messages).toHaveLength(1);
   });
+
+  it('不正なemotionScoreはnullに正規化される', async () => {
+    const token = makeToken();
+    const now = new Date();
+    mockConversationFindUnique.mockResolvedValue({ id: 'conv-1', userId: USER_ID });
+    mockMessageFindMany.mockResolvedValue([
+      {
+        id: 'm1',
+        role: 'assistant',
+        content: 'hello',
+        createdAt: now,
+        emotionScore: { label: 'unexpected', score: 'bad', categories: 'bad' },
+      },
+    ]);
+    const res = await request(app)
+      .get('/api/chat/conv-1/history')
+      .set('Cookie', `token=${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.messages[0].emotionScore).toBeNull();
+  });
 });

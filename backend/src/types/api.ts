@@ -1,3 +1,5 @@
+import type { ChatMessageResponse as ChatMessage, ChatSource } from './chat';
+
 /**
  * API型定義 — 感情トラッキング × AIセルフケアコーチ
  *
@@ -284,23 +286,6 @@ export interface EmotionScore {
   label: EmotionLabel;
   score: number;      // -1.0〜1.0
   categories: string[]; // 例: ["疲労", "ストレス"]
-}
-
-export interface ChatSource {
-  id: string;
-  title: string;
-  url: string;
-  snippet: string;
-  provider: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  emotionScore: EmotionScore | null;
-  createdAt: string;
-  sources: ChatSource[];
 }
 
 // ── POST /api/chat ─────────────────────────────────────────────────────────

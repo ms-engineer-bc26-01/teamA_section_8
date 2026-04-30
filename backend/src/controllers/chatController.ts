@@ -14,6 +14,14 @@ const createMessageSchema = z.object({
   }).optional(),
 });
 
+const VALID_EMOTION_LABELS: ReadonlySet<EmotionScore['label']> = new Set([
+  'joy',
+  'sadness',
+  'anger',
+  'fear',
+  'neutral',
+]);
+
 async function findOwnedConversation(id: string, userId: string) {
   const conversation = await prisma.conversation.findUnique({ where: { id } });
   if (!conversation) {
@@ -71,7 +79,7 @@ export async function postChatMessage(
       },
     });
 
-    const generatedContent = `受け止めました。「${body.data.content}」について、もう少し詳しく聞かせてください。`;
+    const generatedContent = '受け止めました。もう少し詳しく聞かせてください。';
     const generatedEmotion: EmotionScore = {
       label: 'neutral',
       score: 0,
@@ -147,17 +155,10 @@ function mapMessageToResponse(message: {
 }
 
 function isValidEmotionScore(rawEmotion: Partial<EmotionScore> | null): rawEmotion is EmotionScore {
-  const validLabels: ReadonlySet<EmotionScore['label']> = new Set([
-    'joy',
-    'sadness',
-    'anger',
-    'fear',
-    'neutral',
-  ]);
   return Boolean(
     rawEmotion
     && typeof rawEmotion.label === 'string'
-    && validLabels.has(rawEmotion.label as EmotionScore['label'])
+    && VALID_EMOTION_LABELS.has(rawEmotion.label as EmotionScore['label'])
     && typeof rawEmotion.score === 'number'
     && Array.isArray(rawEmotion.categories),
   );
