@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { Sidebar } from "./Sidebar";
 
 export const Layout = () => {
   const location = useLocation();
@@ -20,7 +21,7 @@ export const Layout = () => {
   }, []);
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-gray-50 relative">
+    <div className="flex h-[100dvh] bg-gray-50 relative">
       {/* オフライン時のトースト通知（上部セーフエリアを考慮） */}
       {isOffline && (
         <div className="absolute top-0 left-0 w-full bg-red-500 text-white text-sm font-bold text-center py-2 z-[60] pt-[calc(0.5rem+env(safe-area-inset-top))]">
@@ -28,42 +29,46 @@ export const Layout = () => {
         </div>
       )}
 
-      {/* メインコンテンツ（overscroll-containでゴムひもスクロールを防止） */}
-      <main className="flex-1 overflow-y-auto overscroll-contain">
-        <Outlet />
-      </main>
+      <Sidebar />
 
-      {/* ボトムナビゲーション（下部セーフエリア対応・最小44pxのタップ領域） */}
-      <nav className="bg-white border-t border-gray-200 pb-[env(safe-area-inset-bottom)] flex justify-around items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 flex-shrink-0">
-        <Link
-          to="/home"
-          className={`flex flex-col items-center justify-center min-h-[56px] min-w-[64px] transition-colors ${isActive("/home") ? "text-blue-500" : "text-gray-400"}`}
-        >
-          <span className="text-xl mb-1 leading-none">🏠</span>
-          <span className="text-[10px] font-bold leading-none">ホーム</span>
-        </Link>
-        <Link
-          to="/chat"
-          className={`flex flex-col items-center justify-center min-h-[56px] min-w-[64px] transition-colors ${isActive("/chat") ? "text-blue-500" : "text-gray-400"}`}
-        >
-          <span className="text-xl mb-1 leading-none">💬</span>
-          <span className="text-[10px] font-bold leading-none">チャット</span>
-        </Link>
-        <Link
-          to="/trend"
-          className={`flex flex-col items-center justify-center min-h-[56px] min-w-[64px] transition-colors ${isActive("/trend") ? "text-blue-500" : "text-gray-400"}`}
-        >
-          <span className="text-xl mb-1 leading-none">📈</span>
-          <span className="text-[10px] font-bold leading-none">トレンド</span>
-        </Link>
-        <Link
-          to="/settings"
-          className={`flex flex-col items-center justify-center min-h-[56px] min-w-[64px] transition-colors ${isActive("/settings") ? "text-blue-500" : "text-gray-400"}`}
-        >
-          <span className="text-xl mb-1 leading-none">⚙️</span>
-          <span className="text-[10px] font-bold leading-none">設定</span>
-        </Link>
-      </nav>
+      <div className="flex flex-col flex-1 min-w-0">
+        {/* メインコンテンツ（overscroll-containでゴムひもスクロールを防止） */}
+        <main className="flex-1 overflow-y-auto overscroll-contain">
+          <Outlet />
+        </main>
+
+        {/* ボトムナビゲーション（下部セーフエリア対応・最小44pxのタップ領域） */}
+        <nav className="md:hidden bg-white border-t border-gray-200 pb-[env(safe-area-inset-bottom)] flex justify-around items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 flex-shrink-0">
+          <Link
+            to="/home"
+            className={`flex flex-col items-center justify-center min-h-[56px] min-w-[64px] transition-colors ${isActive("/home") ? "text-blue-500" : "text-gray-400"}`}
+          >
+            <span className="text-xl mb-1 leading-none">🏠</span>
+            <span className="text-[10px] font-bold leading-none">ホーム</span>
+          </Link>
+          <Link
+            to="/chat"
+            className={`flex flex-col items-center justify-center min-h-[56px] min-w-[64px] transition-colors ${isActive("/chat") ? "text-blue-500" : "text-gray-400"}`}
+          >
+            <span className="text-xl mb-1 leading-none">💬</span>
+            <span className="text-[10px] font-bold leading-none">チャット</span>
+          </Link>
+          <Link
+            to="/trend"
+            className={`flex flex-col items-center justify-center min-h-[56px] min-w-[64px] transition-colors ${isActive("/trend") ? "text-blue-500" : "text-gray-400"}`}
+          >
+            <span className="text-xl mb-1 leading-none">📈</span>
+            <span className="text-[10px] font-bold leading-none">トレンド</span>
+          </Link>
+          <Link
+            to="/settings"
+            className={`flex flex-col items-center justify-center min-h-[56px] min-w-[64px] transition-colors ${isActive("/settings") ? "text-blue-500" : "text-gray-400"}`}
+          >
+            <span className="text-xl mb-1 leading-none">⚙️</span>
+            <span className="text-[10px] font-bold leading-none">設定</span>
+          </Link>
+        </nav>
+      </div>
     </div>
   );
 };
